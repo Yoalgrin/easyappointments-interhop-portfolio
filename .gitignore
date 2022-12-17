@@ -29,3 +29,5 @@
 /metafile
 .DS_Store
 /my_docs/
+config.php
+application/config/email.php
