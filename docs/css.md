@@ -1,6 +1,3 @@
-![full_interhop_white_logopng](https://user-images.githubusercontent.com/101267251/206343112-53601666-49b2-4180-a293-749080148945.png)
-![easyappointments-website-logo](https://user-images.githubusercontent.com/101267251/206343106-8a8913c2-6ecf-44f3-bd1e-1e4a1cfa646a.png)
-
 # How to modify the CSS of your application?
 
 This tutorial will help you modify the CSS (colors and layouts) of your **EasyAppointments** application. To do so, you just have to follow the following steps and let your creativity speak for itself 
