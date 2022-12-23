@@ -37,7 +37,7 @@
                     </strong>
                 </p>
 
-                <a href="<?= site_url() ?>" class="btn btn-success btn-large">
+                <a href="<?= site_url() ?>" class="btn btn-primary btn-large">
                     <i class="fas fa-calendar-alt"></i>
                     <?= lang('go_to_booking_page') ?>
                 </a>
