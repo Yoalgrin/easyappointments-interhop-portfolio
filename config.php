@@ -30,18 +30,18 @@ class Config {
     // GENERAL SETTINGS
     // ------------------------------------------------------------------------
 
-    const BASE_URL      = 'http://localhost/EAInterHop';
-    const LANGUAGE      = 'french';
-    const DEBUG_MODE    = FALSE;
+    const BASE_URL      = 'https://easyappointments-test.interhop.org';
+    const LANGUAGE      = 'english';
+    const DEBUG_MODE    = TRUE;
 
     // ------------------------------------------------------------------------
     // DATABASE SETTINGS
     // ------------------------------------------------------------------------
 
     const DB_HOST       = 'localhost';
-    const DB_NAME       = 'Stage';
-    const DB_USERNAME   = 'Speedou';
-    const DB_PASSWORD   = 'Password';
+    const DB_NAME       = 'easyappointments';
+    const DB_USERNAME   = 'easyappointments';
+    const DB_PASSWORD   = 'S&28x8J8pY@rX@KGs8JqvpPP';
 
     // ------------------------------------------------------------------------
     // GOOGLE CALENDAR SYNC
