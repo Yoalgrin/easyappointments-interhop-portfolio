@@ -1,74 +1,71 @@
-![full_interhop_white_logopng](https://user-images.githubusercontent.com/101267251/206343112-53601666-49b2-4180-a293-749080148945.png)
-![easyappointments-website-logo](https://user-images.githubusercontent.com/101267251/206343106-8a8913c2-6ecf-44f3-bd1e-1e4a1cfa646a.png)
+# How to modify the CSS of your application?
 
-# Comment modifier le CSS de votre application ?
+This tutorial will help you modify the CSS (colors and layouts) of your **EasyAppointments** application. To do so, you just have to follow the following steps and let your creativity speak for itself 
 
-Ce tutoriel vous servira à modifier le CSS (couleurs et mises en pages) de votre application  **EasyAppointments**. Pour cela, il vous suffit de suivre les étapes suivantes et de laisser parler votre **créativité.** 
+# The CSS files
 
-# Les fichiers CSS
+The **CSS** files, which will allow you to modify your application, can be found in the following folder : 
 
-Les fichiers **CSS**, qui vous permettront de modifier votre application, se trouvent dans le dossier suivant : 
+projet_name/assets/css
 
-lenomdevotreprojet/assets/css
-
-À l'intérieur de ce dossier se trouvent plusieurs fichiers **xxx.css** :
+Inside this folder are several **xxx.css** files:
 
 <img width="407" alt="Capture d’écran 2022-12-08 à 04 28 02" src="https://user-images.githubusercontent.com/101267251/206349587-1d7353d9-cf36-4327-bd30-1d64aa8f446f.png">
 
-1. **backend.css** -> qui permet de gérer le css du backend de l'application.
-2. **error404.css** -> qui permet de gérer le css du message d'erreur 404.
-3. **forgot_password.css** -> qui permet de gérer le css de la page "mot de passe oublié".
-4. **frontend.css** -> qui permet de gérer le css de la partie frontend de l'application.
-5. **general.css** -> qui permet de gérer le css des parties communes de l'application (header, footer, navbar).
-6. **installation.css** -> qui permet de gérer le css de la page d'installation du projet (celle qui permet de créer le premier utilisateur)
-7. **login.css** -> qui permet de gérer le css de la page login de l'application.
-8. **logout.css** -> qui permet de gérer le css de la page de déconnexion de l'application.
-9. **no_privileges.css** -> qui permet de gérer la partie css de la page "privilèges d'un utilisateur".
-10. **update.css** -> qui permet de gérer la partie css de la page de mise à jour de l'application
+1. **backend.css** -> which allows to manage the css of the application backend.
+2. **error404.css** -> which allows to manage the css of the 404 error message.
+3. **forgot_password.css** -> which allows to manage the css of the page "forgotten password".
+4. **frontend.css** -> which allows to manage the css of the frontend of the application.
+5. **general.css** -> which allows to manage the css of the common parts of the application (header, footer, navbar).
+6. **installation.css** -> which allows to manage the css of the installation page of the project (the one which allows to create the first user)
+7. **login.css** -> which allows to manage the css of the login page of the application.
+8. **logout.css** -> which allows you to manage the css of the application's logout page.
+9. **no_privileges.css** -> which allows to manage the css part of the page "privileges of a user".
+10. **update.css** -> which allows you to manage the css part of the application update page
 
-## Comment modifier les couleurs de l'application ?
+## How to change the colors of the application?
 
-Il y a plusieurs façons de modifier les couleurs et la mise en page de l'application, mais la plus simple et la plus rapide reste la suivante : 
+There are several ways to change the colors and layout of the application, but the easiest and quickest way is as follows: 
 
-**Ouvrir l'application** dans votre navigateur et faites un clic droit sur la partie que vous souhaitez modifier.
+**Open the application** in your browser and right click on the part you want to change.
 
 <img width="1728" alt="Capture d’écran 2022-12-08 à 03 57 37" src="https://user-images.githubusercontent.com/101267251/206349699-b6e41b90-23b4-4b8f-843c-c57e0a19b047.png">
 
-Sélectionner **"inspecter"** et vous verrez un onglet s'ouvrir à droite de votre navigateur.
+Select **"inspect "** and you will see a tab open on the right of your browser.
 
 <img width="1728" alt="Capture d’écran 2022-12-08 à 03 57 48" src="https://user-images.githubusercontent.com/101267251/206349774-6440bcc6-df1f-48ca-85d8-6a739f47631c.png">
 
-Celui-ci vous permet, dans notre cas, de pouvoir **lire le code de la page** et d'y retrouver l'id de l'objet que vous souhaitez modifier. 
-L'avantage de cette méthode, c'est qu'elle vous **permet de tester les modifications avant de les appliquer dans votre IDE**. Il vous suffit de modifier la couleur directement dans votre navigateur et une fois la couleur définitive choisie, **la retranscrire dans le fichier CSS**. Le fonctionnement reste le même pour la **mise en page, les paddings, tailles, display, les polices d'écriture, etc, etc**.
+This allows you, in our case, to **read the code of the page** and to find the id of the object you want to modify. 
+The advantage of this method is that it **allows you to test the modifications before applying them in your IDE**. You just have to modify the color directly in your browser and once the final color is chosen, **transcribe it in the CSS file**. It works the same way for the **layout, paddings, sizes, display, fonts, etc, etc**.
 
 <img width="342" alt="Capture d’écran 2022-12-08 à 03 57 59" src="https://user-images.githubusercontent.com/101267251/206350028-c713fe95-e118-4bd5-968f-8695d7ea63c7.png">
 
-Une fois que vous avez l'id de l'objet que vous recherchez et que vous avez fait votre choix sur les modifications à effectuer, il ne vous reste plus qu'à vous diriger vers votre **IDE, lancer l'application et rechercher, dans le dossier CSS, le fichier correspondant à la page que vous souhaitez modifier**.
-Dans notre cas, nous allons ouvrir le fichier **"frontend.css"**.
-À l'intérieur de celui-ci, il va falloir trouver l'id de ce que nous cherchons. En l'occurrence :
-**#book-appointment-wizzard #header** dans lequel vous pourrez modifier le **"background"**.
+Once you have the id of the object you are looking for and you have made your choice on the modifications you want to make, all you have to do is go to your **IDE, launch the application and search, in the CSS folder, for the file corresponding to the page you want to modify**.
+In our case, we will open the file **"frontend.css "**.
+Inside this file, we will have to find the id of what we are looking for. In this case :
+**#book-appointment-wizzard #header** in which you can change the **"background "**.
 
 <img width="410" alt="Capture d’écran 2022-12-08 à 04 33 57" src="https://user-images.githubusercontent.com/101267251/206350436-f7d1f3ce-441d-46de-ad04-2d7c1d2bcee5.png">
 
-En **CSS** il existe plusieurs méthodes pour **modifier une couleur** :
+In **CSS** there are several methods to **modify a color** :
 
 1. color : crimson; 
 2. color : rgb(255,0,0); 
 3. color : hsl(16,100%,50%); 
 4. color : #FF00FF;
 
-Vous trouverez ici toutes **les couleurs utilisables** :
+You will find here all **usable colors** :
 
 https://htmlcolorcodes.com/fr/
 
-À vous de faire **votre choix**.
+It's up to you to make **your choice**.
 
-## Dernière étape de la modification.
+## Last step in the modification process.
 
-Une fois que vous aurez fait vos **modifications**, il se peut que celles-ci ne soient pas prises en compte immédiatement.
+Once you have made your **changes**, they may not take effect immediately.
 
-**Deux solutions :** 
+**Two solutions:** 
 
-1. Soit, elles sont **prises en compte immédiatement** et dans ce cas, c'est la fin de ce tutoriel.
+1. Either, they are **taken into account immediately** and in this case, it is the end of this tutorial.
 
-2. Soit, elles ne sont **pas prises en compte** et dans ce cas-là, vous avez juste à faire un **"run build"** dans le terminal de votre ide afin que l'IDE compile les fichiers et prenne en compte les modifications.
+2. Or, they are **not taken into account** and in this case, you just have to do a **"run build "** in the terminal of your ide so that the IDE compiles the files and takes into account the modifications.
