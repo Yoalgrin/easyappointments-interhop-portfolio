@@ -81,6 +81,19 @@ class Notifications {
             $customer_link = new Url(site_url('appointments/index/' . $appointment['hash']));
             $provider_link = new Url(site_url('backend/index/' . $appointment['hash']));
 
+            //create links for externals tools
+
+                //meeting with jitsi
+            $appointment_link_meeting = null;
+            $base_link_meeting = 'https://meet.jit.si';
+            if ($service['name'] == lang('telemedicine')){
+                $appointment_link_meeting = $base_link_meeting . $appointment['key_externals_tools'];
+            }
+                //sharing docs with lufi
+            $sharing_docs_link= 'https://lufi.ethibox.fr';
+
+
+
             $ics_stream = $this->CI->ics_file->get_stream($appointment, $service, $provider, $customer);
 
             $send_customer = filter_var(
@@ -91,7 +104,7 @@ class Notifications {
             {
                 $email->send_appointment_details($appointment, $provider,
                     $service, $customer, $settings, $customer_title,
-                    $customer_message, $customer_link, new Email($customer['email']), new Text($ics_stream), $customer['timezone']);
+                    $customer_message, $customer_link,$appointment_link_meeting,$sharing_docs_link, new Email($customer['email']), new Text($ics_stream), $customer['timezone']);
             }
 
             $send_provider = filter_var(
@@ -102,7 +115,7 @@ class Notifications {
             {
                 $email->send_appointment_details($appointment, $provider,
                     $service, $customer, $settings, $provider_title,
-                    $provider_message, $provider_link, new Email($provider['email']), new Text($ics_stream), $provider['timezone']);
+                    $provider_message, $provider_link,$appointment_link_meeting,$sharing_docs_link, new Email($provider['email']), new Text($ics_stream), $provider['timezone']);
             }
 
             // Notify admins
@@ -117,7 +130,7 @@ class Notifications {
 
                 $email->send_appointment_details($appointment, $provider,
                     $service, $customer, $settings, $provider_title,
-                    $provider_message, $provider_link, new Email($admin['email']), new Text($ics_stream), $admin['timezone']);
+                    $provider_message, $provider_link,$appointment_link_meeting,$sharing_docs_link, new Email($admin['email']), new Text($ics_stream), $admin['timezone']);
             }
 
             // Notify secretaries
@@ -137,7 +150,7 @@ class Notifications {
 
                 $email->send_appointment_details($appointment, $provider,
                     $service, $customer, $settings, $provider_title,
-                    $provider_message, $provider_link, new Email($secretary['email']), new Text($ics_stream), $secretary['timezone']);
+                    $provider_message, $provider_link,$appointment_link_meeting,$sharing_docs_link, new Email($secretary['email']), new Text($ics_stream), $secretary['timezone']);
             }
         }
         catch (Exception $exception)
