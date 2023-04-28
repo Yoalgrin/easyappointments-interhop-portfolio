@@ -176,6 +176,14 @@ window.FrontendBook = window.FrontendBook || {};
                     .trigger('change');
             }
 
+            //on init : display all available providers
+            GlobalVariables.availableProviders.forEach(function (provider) {
+                $('#select-provider').append(new Option(provider.first_name + ' ' + provider.last_name, provider.id));
+            })
+            // Add the "Any Provider" entry.
+            if ($('#select-provider option').length > 1 && GlobalVariables.displayAnyProvider === '1') {
+                $('#select-provider').prepend(new Option('- ' + EALang.any_provider + ' -', 'any-provider', true, true));
+            }
         }
     };
 
@@ -207,6 +215,25 @@ window.FrontendBook = window.FrontendBook || {};
             FrontendBookApi.getUnavailableDates($(this).val(), $('#select-service').val(),
                 $('#select-date').datepicker('getDate').toString('yyyy-MM-dd'));
             FrontendBook.updateConfirmFrame();
+
+            //when a provider is selected, display all of its available services
+            var providerId = $('#select-provider').val();
+            $('#select-service').empty()
+
+            //also handle the 'any provider available' option.
+            if(providerId !== 'any-provider'){
+                var provider = GlobalVariables.availableProviders.find(x => x.id === providerId);
+                GlobalVariables.availableServices.forEach(function (service){
+                    // If the current provider can perform the requested service, add him to the list box.
+                    if (provider.services.includes(service.id) === true) {
+                        $('#select-service').append(new Option(service.name, service.id));
+                    }
+                })
+            }else{
+                GlobalVariables.availableServices.forEach(function (service){
+                    $('#select-service').append(new Option(service.name, service.id));
+                })
+            }
         });
 
         /**
@@ -218,7 +245,7 @@ window.FrontendBook = window.FrontendBook || {};
         $('#select-service').on('change', function () {
             var serviceId = $('#select-service').val();
 
-            $('#select-provider').empty();
+            /*$('#select-provider').empty();
 
             GlobalVariables.availableProviders.forEach(function (provider) {
                 // If the current provider is able to provide the selected service, add him to the list box.
@@ -234,7 +261,7 @@ window.FrontendBook = window.FrontendBook || {};
             // Add the "Any Provider" entry.
             if ($('#select-provider option').length > 1 && GlobalVariables.displayAnyProvider === '1') {
                 $('#select-provider').prepend(new Option('- ' + EALang.any_provider + ' -', 'any-provider', true, true));
-            }
+            }*/
 
             FrontendBookApi.getUnavailableDates($('#select-provider').val(), $(this).val(),
                 $('#select-date').datepicker('getDate').toString('yyyy-MM-dd'));
