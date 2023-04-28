@@ -140,4 +140,26 @@ window.BackendCalendarApi = window.BackendCalendarApi || {};
                 }
             });
     }
+
+    exports.getAllAppointments = function (providerId, successCallback, errorCallback){
+        var url = GlobalVariables.baseUrl + '/index.php/backend_api/ajax_get_provider_appointments';
+
+        var data = {
+            csrfToken: GlobalVariables.csrfToken,
+            provider_id: providerId,
+        };
+
+        $.post(url, data)
+            .done(function (response) {
+                if (successCallback) {
+                    successCallback(response);
+                }
+            })
+            .fail(function (jqXHR, textStatus, errorThrown) {
+                if (errorCallback) {
+                    errorCallback();
+                }
+            });
+    }
+
 })(window.BackendCalendarApi);

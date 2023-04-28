@@ -351,7 +351,10 @@ $lang['invalid_validation_code'] = 'Invalide validation code.';
 $lang['customers_count'] = 'Maximum customers count';
 $lang['another_appointment'] = 'Appointments for a third personne';
 $lang['third_party'] = 'Third party';
-
+$lang['appointment_cancelled_by_provider'] = 'Your appointment has been cancelled by the provider :';
+$lang['appointment_cancelled_for_provider'] = 'Due to the input of a unavailability period, the following appointments has been cancelled :';
+$lang['warning_single_appointment_affected'] = 'An appointment is scheduled for the selected period. The patient(s) concerned will be notified by email after validation.';
+$lang['warning_multiple_appointments_affected'] = ' appointments are scheduled during the selected period. The patients concerned will be notified by email after validation.';
 
 
 // End
