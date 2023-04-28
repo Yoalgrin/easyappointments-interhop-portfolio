@@ -109,6 +109,7 @@ class Availability {
 
         // Search if the $date is an custom availability period added outside the normal working plan.
         if (isset($working_plan_exceptions[$date])) $date_working_plan = $working_plan_exceptions[$date];
+
         // If no working plane is defined for the selected date, return an empty array.
         if (!isset($date_working_plan)) return array();
 
@@ -145,58 +146,22 @@ class Availability {
             $startDay = date_create_from_format('Y-m-d', substr($appointment['start_datetime'], 0, 10));
             $curDay = date_create_from_format('Y-m-d', substr($date, 0, 10));
 
-            //Block unavailabilities over multiple days (>2)
-            if($appointment['is_unavailable'] == 1){
-                $endDay = date_create_from_format('Y-m-d', substr($appointment['end_datetime'], 0, 10));
-                //Getting the unavailables days in the interval...
-                $period = new DatePeriod(
-                    $startDay,
-                    new DateInterval('P1D'),
-                    $endDay,
-                    DatePeriod::EXCLUDE_START_DATE,
-                );
-                $arr = array();
-                foreach ($period as $value) {
-                    $arr[] = $value->format('Y-m-d');
-                }
-                //... and only keeping those who are superior to 2 days
-                if(sizeof($arr) > 0){
-                    foreach ($arr as $dayUnavailable){
-                        $otherStart = $dayUnavailable. ' 00:00:00';
-                        $otherEnd = $dayUnavailable. ' 23:59:59';
-                        if (date_format(date_create_from_format('Y-m-d',$dayUnavailable), 'dmo') == date_format($curDay, 'dmo')) {
-                            $this->putAppointment($otherStart, $otherEnd, $day, $servicesDay, $services[1]['attendants_number']);
-                        }
-                    }
-                };
-                //Handling two days of unavailabilities in a row (eg mon>tue)
-                switch (true){
-                    case date_format($endDay, 'dmo') != date_format($curDay, 'dmo'):
-                        $end = date("Y-m-d").' 23:59:59';
-                        break;
-                    case date_format($startDay, 'dmo') != date_format($curDay, 'dmo'):
-                        $start = substr($curDay->format('Y-m-d H:i:s'),0,10). ' 00:00:00';
-                        $startDay = date_create_from_format('Y-m-d', substr($start, 0, 10));
-                        break;
-                }
-            }
-
             // If this is not for the current day, skip-it.
             if (date_format($startDay, 'dmo') != date_format($curDay, 'dmo')) continue;
 
-            // Search the service this appointment belongs to, only if the appointment isn't an 'unavailable' timeslot
-            if($appointment['is_unavailable'] != 1) {
-                for ($ser = 0; $ser < count($services); $ser++) if ($services[$ser]['id'] == $appointment['id_services']) break;
-                // If no service was found, ignore the appointment.
-                if ($ser == count($services)) continue;
-                // Search the category of the service this appointment belongs to and ignore-it if private
-                if (($cat = $this->searchCategory($services[$ser], $categories)) && ($this->isPrivate($cat, $categories))) continue;
-                // Handle the appointment according to his attendants customers.
-                $this->putAppointment($start, $end, $day, $servicesDay, $services[$ser]['attendants_number']);
-            }else{ //By default, the 'unavailable' appointments doesn't have a service and gets ignored
-                $this->putAppointment($start, $end, $day, $servicesDay, $services[1]['attendants_number']);
-            }
+            // Search the service this appointment belongs to.
+            for ($ser = 0; $ser < count($services); $ser++) if ($services[$ser]['id'] == $appointment['id_services']) break;
+
+            // If no service was found, ignore the appointment.
+            if ($ser == count($services)) continue;
+
+            // Search the category of the service this appointment belongs to and ignore-it if private
+            if ( ($cat = $this->searchCategory($services[$ser], $categories)) && ($this->isPrivate($cat, $categories)) ) continue;
+
+            // Handle the appointment according to his attendants customers.
+            $this->putAppointment($start, $end, $day, $servicesDay, $services[$ser]['attendants_number']);
         }
+
         return $this->searchSlots($day, $categoriesDay, $askedCat, self::FREE_SLOT);
     }
 
@@ -343,7 +308,7 @@ class Availability {
         $startDate = new DateTime($startHour);
         $endDate = new DateTime($endHour);
 
-        $start = (int) (date_format($startDate, 'H') * 4 + date_format($startDate, 'i') / 15) * 1;
+        $start = (date_format($startDate, 'H') * 4 + date_format($startDate, 'i') / 15) * 1;
         $end = (date_format($endDate, 'H') * 4 + date_format($endDate, 'i') / 15) * 1;
 
         for ($i = $start; $i < $end; $i++)
