@@ -321,7 +321,7 @@ $lang['add_working_plan_exceptions_during_each_day'] = 'Ajouter des horaires par
 $lang['add_working_plan_exception'] = 'Ajouter des horaires particuliers';
 $lang['require_phone_number'] = 'Numéro de téléphone obligatoire';
 $lang['require_phone_number_hint'] = 'When enabled, customers and users will need to enter the customer\'s phone number when booking an appointment';
-$lang['check_spam_folder'] = 'Please check your spam folder if the email does not arrive within a few minutes.';
+$lang['check_spam_folder'] = 'Veuillez vérifier le dossier spam de votre messagerie si vous n\'avez pas reçu l\'email d\'ici quelques minutes.';
 $lang['api_token_hint'] = 'Set a secret token in order to enable the token based authentication of the Easy!Appointments API.';
 $lang['timezone'] = 'Timezone';
 $lang['overwrite_existing_working_plans'] = 'This will overwrite the existing provider working plans, are you sure that you want to continue?';
@@ -350,5 +350,11 @@ $lang['invalid_validation_code'] = 'Code de validation de l\'email invalide.';
 $lang['customers_count'] = 'Limite de patients';
 $lang['another_appointment'] = 'Rendez vous pour une tierce personne';
 $lang['third_party'] = 'Tierce personne';
+$lang['meeting'] = 'Lien pour la téléconsultation';
+$lang['sharing_docs'] = 'Lien pour le partage de documents';
+$lang['key_externals_tools'] = 'Clé outils externes';
+$lang['externals_tools'] = 'Outils externes';
+$lang['link'] = 'Lien';
+$lang['telemedicine'] = 'Téléconsultation';
 
 // End
