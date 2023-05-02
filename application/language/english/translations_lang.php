@@ -351,6 +351,12 @@ $lang['invalid_validation_code'] = 'Invalide validation code.';
 $lang['customers_count'] = 'Maximum customers count';
 $lang['another_appointment'] = 'Appointments for a third personne';
 $lang['third_party'] = 'Third party';
+$lang['meeting'] = 'link for telemedicine';
+$lang['sharing_docs'] = 'Link for sharing docs';
+$lang['key_externals_tools'] = 'Key externals tools';
+$lang['externals_tools'] = 'Externals Tools';
+$lang['link'] = 'Link';
+$lang['telemedicine'] = 'Telemedicine';
 
 
 
