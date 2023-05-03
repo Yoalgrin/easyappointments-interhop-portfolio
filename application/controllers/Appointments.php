@@ -153,7 +153,8 @@ class Appointments extends EA_Controller
                     'id_services' => $appointment['id_services'],
                     'id_users_customer' => $appointment['id_users_customer'],
                     'id_users_provider' => $appointment['id_users_provider'],
-                    'notes' => $appointment['notes']
+                    'notes' => $appointment['notes'],
+                    'key_externals_tools' => $appointment['key_externals_tools']
                 ];
 
                 $provider = $this->providers_model->get_row($appointment['id_users_provider']);
@@ -572,6 +573,7 @@ class Appointments extends EA_Controller
             $appointment['is_unavailable'] = (int)$appointment['is_unavailable']; // needs to be type casted
             $appointment['id'] = $this->appointments_model->add($appointment);
             $appointment['hash'] = $this->appointments_model->get_value('hash', $appointment['id']);
+            $appointment['key_externals_tools'] = $this->appointments_model->get_value('key_externals_tools', $appointment['id']);
 
             $settings = [
                 'company_name' => $this->settings_model->get_setting('company_name'),
