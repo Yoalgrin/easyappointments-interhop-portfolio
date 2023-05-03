@@ -124,6 +124,7 @@ window.BackendSettings = window.BackendSettings || {};
         $('#password, #retype-password').val('');
         $('#calendar-view').val(GlobalVariables.settings.user.settings.calendar_view);
         $('#user-notifications').prop('checked', Boolean(Number(GlobalVariables.settings.user.settings.notifications)));
+        $('#appt-automatic-deletion-by-provider').val(GlobalVariables.settings.user.appt_automatic_deletion_by_provider);
 
         // Set default settings helper.
         settings = new SystemSettings();

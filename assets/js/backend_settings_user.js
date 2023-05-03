@@ -38,6 +38,7 @@
             city: $('#city').val(),
             state: $('#state').val(),
             zip_code: $('#zip-code').val(),
+            appt_automatic_deletion_by_provider: $('#appt-automatic-deletion-by-provider').val(),
             notes: $('#notes').val(),
             timezone: $('#timezone').val(),
             settings: {
