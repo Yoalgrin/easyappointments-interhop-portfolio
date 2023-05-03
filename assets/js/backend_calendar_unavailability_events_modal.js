@@ -84,6 +84,61 @@ window.BackendCalendarUnavailabilityEventsModal = window.BackendCalendarUnavaila
             BackendCalendarApi.saveUnavailable(unavailable, successCallback, null);
         });
 
+        var allAppts = [];
+        function getAllAppointments(providerId){
+            allAppts = [];
+            $('#manage-unavailable').find('.modal-message').addClass('d-none');
+            var success = function (appts) {
+                for (var i = 0; i < appts.length; i++) {
+                    allAppts.push(appts[i]);
+                }
+            };
+            BackendCalendarApi.getAllAppointments(providerId, success, null);
+        }
+
+
+        $('#unavailable-provider').change(function () {
+            var providerId = $('#unavailable-provider').val();
+            getAllAppointments(providerId);
+        })
+        $('#select-filter-item').change(function () {
+            var providerId = $('#select-filter-item').val();
+            getAllAppointments(providerId);
+        })
+
+
+        //Display a message stating how many appointments will be cancelled if the form is submitted
+        $('#unavailable-start, #unavailable-end').change(function () {
+            var $dialog = $('#manage-unavailable');
+            var start = $dialog.find('#unavailable-start').val();
+            var end = $dialog.find('#unavailable-end').val();
+            var formattedDateStart = moment(start, 'DD/MM/YYYY HH:mm').format('YYYY-MM-DD HH:mm:ss');
+            var formattedDateEnd = moment(end, 'DD/MM/YYYY HH:mm').format('YYYY-MM-DD HH:mm:ss');
+
+            if (formattedDateEnd > formattedDateStart) {
+                var concernedAppts = [];
+                for (var i = 0; i < allAppts.length; i++) {
+                    if (allAppts[i]['start_datetime'] > formattedDateStart && allAppts[i]['start_datetime'] < formattedDateEnd){
+                        concernedAppts.push(allAppts[i]);
+                    }
+                }
+                if(concernedAppts.length > 0){
+                        if(concernedAppts.length < 2){
+                            $dialog.find('.modal-message').text(EALang.warning_single_appointment_affected)
+                        }else{
+                            $dialog.find('.modal-message').text(concernedAppts.length + " " + EALang.warning_multiple_appointments_affected)
+                        }
+                    $dialog.find('.modal-message')
+                        .addClass('alert-danger')
+                        .removeClass('d-none');
+                }else{
+                    $dialog.find('.modal-message').addClass('d-none');
+                };
+            }else{
+                $dialog.find('.modal-message').addClass('d-none');
+            };
+        })
+
         /**
          * Event : Insert Unavailable Time Period Button "Click"
          *

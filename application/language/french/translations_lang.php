@@ -350,11 +350,15 @@ $lang['invalid_validation_code'] = 'Code de validation de l\'email invalide.';
 $lang['customers_count'] = 'Limite de patients';
 $lang['another_appointment'] = 'Rendez vous pour une tierce personne';
 $lang['third_party'] = 'Tierce personne';
+$lang['appointment_cancelled_by_provider'] = 'Votre rendez-vous a été annulé par le soignant :';
+$lang['appointment_cancelled_for_provider'] = 'Suite à la saisie d\'une période d\'indisponibilité, les rendez-vous suivants ont été annulés :';
+$lang['warning_single_appointment_affected'] = 'Un rendez-vous est prévu sur la période sélectionnée. Le ou les patients concernés seront notifiés par mail après validation.';
+$lang['warning_multiple_appointments_affected'] = ' rendez-vous sont prévus sur la période sélectionnée. Les patients concernés seront notifiés par mail après validation.';
+$lang['cancel_appointment_message'] = 'Message du soignant';
 $lang['meeting'] = 'Lien pour la téléconsultation';
 $lang['sharing_docs'] = 'Lien pour le partage de documents';
 $lang['key_externals_tools'] = 'Clé outils externes';
 $lang['externals_tools'] = 'Outils externes';
 $lang['link'] = 'Lien';
 $lang['telemedicine'] = 'Téléconsultation';
-
 // End

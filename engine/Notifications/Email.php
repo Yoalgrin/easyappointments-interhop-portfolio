@@ -276,6 +276,124 @@ class Email {
     }
 
     /**
+     * @param array $appointment The record data of the cancelled appointment.
+     * @param array $provider The record data of the appointment provider.
+     * @param array $service The record data of the appointment service.
+     * @param array $customer The record data of the appointment customer.
+     * @param array $settings Some settings that are required for this function. As of now this array must contain
+     * the following values: "company_link", "company_name", "company_email".
+     * @param \EA\Engine\Types\Email $recipient_email The email address of the email recipient.
+     * @param string|null $recipient_status The status of the email recipient (staff or customer).
+     * @param \EA\Engine\Types\Text $reason The (optionnal) message that will be sent globally to all customers.
+     * @param string|null $timezone Custom timezone.
+     * @throws Exception
+     */
+    public function send_cancelled_appointment(
+        array $appointment,
+        array $provider,
+        array $service,
+        array $customer,
+        array $settings,
+        EmailAddress $recipient_email,
+        string $recipient_status,
+        Text $reason,
+        $timezone = NULL
+    )
+    {
+        $timezones = $this->CI->timezones->to_array();
+
+        $date_format = $this->configure_date_format($settings);
+        $time_format = $this->configure_time_format($settings);
+        $appointment_timezone = new DateTimeZone($provider['timezone']);
+
+        //Send the recap cancelled appointment mail for secretaries & provider...
+        if($recipient_status == 'secretary' || $recipient_status == 'provider')
+        {
+            $appointmentsServices = array();
+            $appointmentsDates = array();
+            $appointmentsDuration = array();
+            $appointmentsCustomersNames = array();
+            $appointmentsCustomerEmails = array();
+            $appointmentsCustomerPhones = array();
+            $appointmentsCustomerAddresses = array();
+
+            foreach ($appointment as $apt){
+
+                $appointment_start = new DateTime($apt['start_datetime'], $appointment_timezone);
+                $service = $this->CI->services_model->get_row($apt['id_services']);
+                $customer = $this->CI->customers_model->get_row($apt['id_users_customer']);
+
+                if ($timezone && $timezone !== $provider['timezone'])
+                {
+                    $appointment_timezone = new DateTimeZone($timezone);
+                    $appointment_start->setTimezone($appointment_timezone);
+                }
+                $appointmentsDates[] = $appointment_start->format($date_format . ' ' . $time_format);
+                $appointmentsServices[] = $service['name'];
+                $appointmentsDuration[] = $service['duration'] . ' ' . lang('minutes');
+                $appointmentsCustomersNames[] = $customer['first_name'] . ' ' . $customer['last_name'];
+                $appointmentsCustomerEmails[] = $customer['email'];
+                $appointmentsCustomerPhones[] = $customer['phone_number'];
+                $appointmentsCustomerAddresses[] = $customer['address'];
+            }
+
+                $html = $this->CI->load->view('emails/cancel_appointment', [
+                    'appointment_service' => $appointmentsServices,
+                    'appointment_provider' => $provider['first_name'] . ' ' . $provider['last_name'],
+                    'appointment_date' => $appointmentsDates,
+                    'appointment_duration' => $appointmentsDuration,
+                    'appointment_timezone' => $timezones[empty($timezone) ? $provider['timezone'] : $timezone],
+                    'company_link' => $settings['company_link'],
+                    'company_name' => $settings['company_name'],
+                    'customer_name' => $appointmentsCustomersNames,
+                    'customer_email' => $appointmentsCustomerEmails,
+                    'customer_phone' => $appointmentsCustomerPhones,
+                    'customer_address' => $appointmentsCustomerAddresses,
+                    'reason' => $reason->get(),
+                ], TRUE);
+
+        //...or each one the customers concerned
+        }elseif ($recipient_status == 'customer'){
+            $appointment_start = new DateTime($appointment['start_datetime'], $appointment_timezone);
+            if ($timezone && $timezone !== $provider['timezone'])
+            {
+                $appointment_timezone = new DateTimeZone($timezone);
+                $appointment_start->setTimezone($appointment_timezone);
+            }
+
+            $html = $this->CI->load->view('emails/cancel_appointment', [
+                'appointment_service' => $service['name'],
+                'appointment_provider' => $provider['first_name'] . ' ' . $provider['last_name'],
+                'appointment_date' => $appointment_start->format($date_format . ' ' . $time_format),
+                'appointment_duration' => $service['duration'] . ' ' . lang('minutes'),
+                'appointment_timezone' => $timezones[empty($timezone) ? $provider['timezone'] : $timezone],
+                'company_link' => $settings['company_link'],
+                'company_name' => $settings['company_name'],
+                'customer_name' => $customer['first_name'] . ' ' . $customer['last_name'],
+                'customer_email' => $customer['email'],
+                'customer_phone' => $customer['phone_number'],
+                'customer_address' => $customer['address'],
+                'reason' => $reason->get(),
+            ], TRUE);
+        }
+        $mailer = $this->create_mailer();
+
+        // Send email to recipient.
+        $mailer->From = $settings['company_email'];
+        $mailer->FromName = $settings['company_name'];
+        $mailer->AddAddress($recipient_email->get()); // "Name" argument crushes the phpmailer class.
+        $mailer->Subject = lang('appointment_cancelled_title');
+        $mailer->Body = $html;
+        if ( ! $mailer->Send())
+        {
+            throw new RuntimeException('Email could not been sent. Mailer Error (Line ' . __LINE__ . '): '
+                . $mailer->ErrorInfo);
+        }
+    }
+
+
+
+    /**
      * This method sends an email with the new password of a user.
      *
      * @param \EA\Engine\Types\NonEmptyText $password Contains the new password.
@@ -370,5 +488,33 @@ class Email {
         $mailer->CharSet = $this->config['charset'];
 
         return $mailer;
+    }
+
+    protected function configure_date_format(array $settings): string
+    {
+        switch ($settings['date_format'])
+        {
+            case 'DMY':
+                return 'd/m/Y';
+            case 'MDY':
+                return 'm/d/Y';
+            case 'YMD':
+                return 'Y/m/d';
+            default:
+                throw new Exception('Invalid date_format value: ' . $settings['date_format']);
+        }
+    }
+
+    private function configure_time_format(array $settings): string
+    {
+        switch ($settings['time_format'])
+        {
+            case 'military':
+                return 'H:i';
+            case 'regular':
+                return 'g:i a';
+            default:
+                throw new Exception('Invalid time_format value: ' . $settings['time_format']);
+        }
     }
 }

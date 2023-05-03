@@ -1000,16 +1000,33 @@ window.BackendCalendarTableView = window.BackendCalendarTableView || {};
                 continue;
             }
 
-            calendarEvents.push({
+            var apptTable = {
                 id: appointment.id,
-                title: appointment.service.name + ' - '
-                    + appointment.customer.first_name + ' '
-                    + appointment.customer.last_name,
-                start: moment(appointment.start_datetime),
-                end: moment(appointment.end_datetime),
-                allDay: false,
-                data: appointment // Store appointment data for later use.
-            });
+                    title: appointment.service.name + ' - '
+                + appointment.customer.first_name + ' '
+                + appointment.customer.last_name,
+                    start: moment(appointment.start_datetime),
+                    end: moment(appointment.end_datetime),
+                    allDay: false,
+                    data: appointment, // Store appointment data for later use.
+            }
+
+            switch(true){
+                case appointment.appointment_status == 'cancelled' :
+                    apptTable.color = '#f44336';
+                    break;
+                case appointment.appointment_status == 'planned' :
+                    apptTable.color = '#8fce00';
+                    break;
+                case appointment.appointment_status == 'done' :
+                    apptTable.color = '#999999';
+                    break;
+                case appointment.appointment_status == 'happening' :
+                    apptTable.color = '#ffd966';
+                    break;
+            }
+
+            calendarEvents.push(apptTable);
         }
 
         $providerColumn.find('.calendar-wrapper').fullCalendar('addEventSource', calendarEvents);
@@ -1027,7 +1044,6 @@ window.BackendCalendarTableView = window.BackendCalendarTableView || {};
         if (unavailabilityEvents.length === 0) {
             return;
         }
-
         var calendarEventSource = [];
 
         for (var index in unavailabilityEvents) {
