@@ -337,7 +337,6 @@
                     </div>
                 </div>
 
-                <?php if ($display_terms_and_conditions): ?>
                     <div class="form-check mb-3">
                         <input type="checkbox" class="required form-check-input" id="accept-to-terms-and-conditions">
                         <label class="form-check-label" for="accept-to-terms-and-conditions">
@@ -349,9 +348,7 @@
                             ?>
                         </label>
                     </div>
-                <?php endif ?>
 
-                <?php if ($display_privacy_policy): ?>
                     <div class="form-check mb-3">
                         <input type="checkbox" class="required form-check-input" id="accept-to-privacy-policy">
                         <label class="form-check-label" for="accept-to-privacy-policy">
@@ -363,7 +360,6 @@
                             ?>
                         </label>
                     </div>
-                <?php endif ?>
 
                 <div class="command-buttons">
                     <button type="button" id="button-back-3" class="btn button-back btn-outline-secondary"
@@ -404,34 +400,6 @@
                     </div>
                 </div>
 
-<!--                <?php /*if ($display_terms_and_conditions): */?>
-                    <div class="form-check mb-3">
-                        <input type="checkbox" class="required form-check-input" id="accept-to-terms-and-conditions">
-                        <label class="form-check-label" for="accept-to-terms-and-conditions">
-                            <?php /*= strtr(lang('read_and_agree_to_terms_and_conditions'),
-                                [
-                                    '{$link}' => '<a href="#" data-toggle="modal" data-target="#terms-and-conditions-modal">',
-                                    '{/$link}' => '</a>'
-                                ])
-                            */?>
-                        </label>
-                    </div>
-                --><?php /*endif */?>
-
-<!--                <?php /*if ($display_privacy_policy): */?>
-                    <div class="form-check mb-3">
-                        <input type="checkbox" class="required form-check-input" id="accept-to-privacy-policy">
-                        <label class="form-check-label" for="accept-to-privacy-policy">
-                            <?php /*= strtr(lang('read_and_agree_to_privacy_policy'),
-                                [
-                                    '{$link}' => '<a href="#" data-toggle="modal" data-target="#privacy-policy-modal">',
-                                    '{/$link}' => '</a>'
-                                ])
-                            */?>
-                        </label>
-                    </div>
-                --><?php /*endif */?>
-
                 <div class="command-buttons">
                     <button type="button" id="button-back-4" class="btn button-back btn-outline-secondary"
                             data-step_index="4">
@@ -445,6 +413,7 @@
                     </button>
                 </div>
             </div>
+
 
             <!-- APPOINTMENT DATA CONFIRMATION -->
 
