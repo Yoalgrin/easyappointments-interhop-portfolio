@@ -363,6 +363,8 @@ class Backend extends EA_Controller {
         $view['company_name'] = $this->settings_model->get_setting('company_name');
         $view['date_format'] = $this->settings_model->get_setting('date_format');
         $view['first_weekday'] = $this->settings_model->get_setting('first_weekday');
+        $view['general_appt_automatic_deletion'] = $this->settings_model->get_setting('general_appt_automatic_deletion');
+        $view['appt_automatic_deletion_choice'] = $this->settings_model->get_setting('appt_automatic_deletion_choice');
         $view['time_format'] = $this->settings_model->get_setting('time_format');
         $view['categories'] = $this->services_model->get_all_categories();
         $view['role_slug'] = $this->session->userdata('role_slug');
