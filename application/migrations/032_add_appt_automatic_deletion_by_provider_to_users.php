@@ -1,0 +1,49 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed');
+
+/* ----------------------------------------------------------------------------
+ * Easy!Appointments - Open Source Web Scheduler
+ *
+ * @package     EasyAppointments
+ * @author      A.Tselegidis <alextselegidis@gmail.com>
+ * @copyright   Copyright (c) 2013 - 2020, Alex Tselegidis
+ * @license     http://opensource.org/licenses/GPL-3.0 - GPLv3
+ * @link        http://easyappointments.org
+ * @since       v1.4.0
+ * ---------------------------------------------------------------------------- */
+
+/**
+ * Class Migration_Add_appt_automatic_deletion_by_provider_to_users
+ *
+ * appt_automatic_deletion_by_provider : automatic deletion delay of past appointments by provider
+ *
+ * @property CI_DB_query_builder $db
+ * @property CI_DB_forge $dbforge
+ */
+class Migration_Add_appt_automatic_deletion_by_provider_to_users extends CI_Migration {
+    /**
+     * Upgrade method.
+     */
+    public function up()
+    {
+        if ( ! $this->db->field_exists('appt_automatic_deletion_by_provider', 'users'))
+        {
+            $fields = [
+                'appt_automatic_deletion_by_provider' => [
+                    'type'     => 'INTEGER',
+                    'null'     => true,
+                    'default'  => null
+                ]
+            ];
+
+            $this->dbforge->add_column('users', $fields);
+        }
+    }
+
+    /**
+     * Downgrade method.
+     */
+    public function down()
+    {
+        $this->dbforge->drop_column('users', 'appt_automatic_deletion_by_provider');
+    }
+}
