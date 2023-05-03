@@ -455,6 +455,8 @@ class Providers_model extends EA_Model {
      * @return bool Returns the delete operation result.
      *
      * @throws Exception When the provider id value is not int.
+     *
+     * Also delete the corresponding event of automatic deletion of appointments if it exists
      */
     public function delete($provider_id)
     {
@@ -468,6 +470,9 @@ class Providers_model extends EA_Model {
         {
             return FALSE; // Record does not exist in database.
         }
+
+        $sql = 'DROP EVENT IF EXISTS automaticDeletionEventProvider'.$provider_id.';';
+        $settings = $this->db->query($sql);
 
         return $this->db->delete('users', ['id' => $provider_id]);
     }
