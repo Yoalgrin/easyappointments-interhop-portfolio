@@ -91,6 +91,8 @@ class Email {
         Text $title,
         Text $message,
         Url $appointment_link_address,
+        $appointment_link_meeting,
+        $sharing_docs_link,
         EmailAddress $recipient_email,
         Text $ics_stream,
         $timezone = NULL
@@ -136,6 +138,8 @@ class Email {
             $appointment_end->setTimezone($appointment_timezone);
         }
 
+
+
         $html = $this->CI->load->view('emails/appointment_details', [
             'email_title' => $title->get(),
             'email_message' => $message->get(),
@@ -145,6 +149,8 @@ class Email {
             'appointment_end_date' => $appointment_end->format($date_format . ' ' . $time_format),
             'appointment_timezone' => $timezones[empty($timezone) ? $provider['timezone'] : $timezone],
             'appointment_link' => $appointment_link_address->get(),
+            'appointment_link_meeting' => $appointment_link_meeting,
+            'sharing_docs_link' => $sharing_docs_link,
             'company_link' => $settings['company_link'],
             'company_name' => $settings['company_name'],
             'customer_name' => $customer['first_name'] . ' ' . $customer['last_name'],

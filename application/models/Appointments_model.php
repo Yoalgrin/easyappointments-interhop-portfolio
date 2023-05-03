@@ -155,6 +155,7 @@ class Appointments_model extends EA_Model {
     {
         $appointment['book_datetime'] = date('Y-m-d H:i:s');
         $appointment['hash'] = random_string('alnum', 12);
+        $appointment['key_externals_tools'] = '/Interhop'.random_string('alnum', 12);
 
         if ( ! $this->db->insert('appointments', $appointment))
         {
