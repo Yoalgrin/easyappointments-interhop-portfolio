@@ -1274,7 +1274,29 @@ class Backend_api extends EA_Controller
     }
 
     /**
-     * Save (insert or update) a provider record into database.
+     * Set or update appointments automatic deletion event for one provider
+     */
+    private function appointments_deletion_event_from_one_provider($id_provider)
+    {
+        $sql = 'DROP EVENT IF EXISTS automaticDeletionEventProvider'.$id_provider.';';
+        $settings = $this->db->query($sql);
+
+        $appt_automatic_deletion_by_provider
+            = $this->providers_model->get_value('appt_automatic_deletion_by_provider', $id_provider);
+        if ($appt_automatic_deletion_by_provider > 0){
+            $sql = 'CREATE EVENT automaticDeletionEventProvider'.$id_provider
+                . '    ON SCHEDULE EVERY 15 SECOND STARTS \'2023-01-01 00:00:00\''
+                . '    DO'
+                . '    DELETE FROM ea_appointments'
+                . '    WHERE ((DATEDIFF(CURRENT_TIMESTAMP, start_datetime) > '.$appt_automatic_deletion_by_provider.')'
+                . '    AND (id_users_provider ='. $id_provider.'));';
+            $settings = $this->db->query($sql);
+        }
+    }
+
+    /**
+     * Save (insert or update) a provider record into database
+     * and create or update the automatic deletion event of his appointments.
      */
     public function ajax_save_provider()
     {
@@ -1294,6 +1316,9 @@ class Backend_api extends EA_Controller
             $provider_id = $this->providers_model->add($provider);
 
             $response = ['status' => AJAX_SUCCESS, 'id' => $provider_id];
+
+            $this->appointments_deletion_event_from_one_provider($provider_id);
+
         } catch (Exception $exception) {
             $this->output->set_status_header(500);
 
@@ -1419,7 +1444,24 @@ class Backend_api extends EA_Controller
     }
 
     /**
-     * Save a setting or multiple settings in the database.
+     * Set or update appointments automatic deletion event for all providers
+     */
+    private function appointments_deletion_event_from_all_providers() {
+
+        $sql = 'UPDATE ea_users SET appt_automatic_deletion_by_provider = (SELECT value FROM ea_settings WHERE name = "general_appt_automatic_deletion") WHERE id_roles = 2;';
+        $settings = $this->db->query($sql);
+
+        $providers = $this->providers_model->get_batch();
+        foreach ($providers as $provider) {
+
+            $id_provider = $provider['id'];
+            $this->appointments_deletion_event_from_one_provider($id_provider);
+        }
+    }
+
+    /**
+     * Save a setting or multiple settings in the database     *
+     * and create or update the corresponding automatic deletion event(s) of appointments.
      */
     public function ajax_save_settings()
     {
@@ -1432,6 +1474,16 @@ class Backend_api extends EA_Controller
                 $settings = json_decode($this->input->post('settings', FALSE), TRUE);
 
                 $this->settings_model->save_settings($settings);
+
+                $appt_automatic_deletion_choice=$this->settings_model->get_setting('appt_automatic_deletion_choice');
+                if ($appt_automatic_deletion_choice == 'no-automatic-deletion' || $appt_automatic_deletion_choice == 'by-provider') {
+                    $sql = 'UPDATE ea_settings SET value = 0 WHERE name = "general_appt_automatic_deletion";';
+                    $settings = $this->db->query($sql);
+                }
+
+                $this->appointments_deletion_event_from_all_providers();
+
+
             } else {
                 if ($this->input->post('type') == SETTINGS_USER) {
                     if ($this->privileges[PRIV_USER_SETTINGS]['edit'] == FALSE) {
@@ -1447,6 +1499,10 @@ class Backend_api extends EA_Controller
                         'username' => $settings['settings']['username'],
                         'timezone' => $settings['timezone'],
                     ]);
+
+                    $id_provider = $this->session->userdata('user_id');
+                    $this->appointments_deletion_event_from_one_provider($id_provider);
+
                 }
             }
 

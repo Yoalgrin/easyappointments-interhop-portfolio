@@ -55,6 +55,8 @@
                 // Update variables also used in other setting tabs
                 GlobalVariables.timeFormat = $('#time-format').val();
                 GlobalVariables.firstWeekday = $('#first-weekday').val();
+                GlobalVariables.generalApptAutomaticDeletion = $('#general-appt-automatic-deletion').val();
+                GlobalVariables.apptAutomaticDeletionChoice = $('#appt-automatic-deletion-choice').val();
 
                 // We need to refresh the working plan.
                 var workingPlan = BackendSettings.wp.get();

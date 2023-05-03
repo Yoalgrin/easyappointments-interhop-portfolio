@@ -256,6 +256,21 @@
                                         </select>
                                     </div>
 
+                                    <!-- if the choice of automatic deletion of appointments is by provider,
+                                    display the input field for the value of the delay for the automatic deletion of his appointments -->
+                                    <?php $appt_automatic_deletion_choice=$this->settings_model->get_setting('appt_automatic_deletion_choice');
+                                    if ($appt_automatic_deletion_choice == 'by-provider'): ?>
+                                        <div class="form-group">
+                                            <label for="provider-appt-automatic-deletion-by-provider">
+                                                <?= lang('appointments_automatic_deletion') ?>
+                                            </label>
+                                            <input id="provider-appt-automatic-deletion-by-provider"
+                                                   data-field="provider_appt_automatic_deletion_by_provider"
+                                                   class="form-control required" type="number" min="0">
+                                            <?= lang('appointments_automatic_deletion_hint') ?>
+                                        </div>
+                                    <?php endif; ?>
+
                                     <?php if (!$enable_default_timezone) : ?>
                                         <div class="form-group">
                                             <label for="provider-timezone">

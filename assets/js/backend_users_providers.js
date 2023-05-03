@@ -154,6 +154,7 @@
                 notes: $('#provider-notes').val(),
                 timezone: $('#provider-timezone').val(),
                 customers_count: ($('#provider-customers-count').val()),
+                appt_automatic_deletion_by_provider: ($('#provider-appt-automatic-deletion-by-provider').val()),
 
                 settings: {
                     username: $('#provider-username').val(),
@@ -432,6 +433,7 @@
         $('#provider-username').val(provider.settings.username);
         $('#provider-calendar-view').val(provider.settings.calendar_view);
         $('#provider-customers-count').val(provider.customers_count);
+        $('#provider-appt-automatic-deletion-by-provider').val(provider.appt_automatic_deletion_by_provider);
         $('#provider-notifications').prop('checked', Boolean(Number(provider.settings.notifications)));
 
         // Add dedicated provider link.
