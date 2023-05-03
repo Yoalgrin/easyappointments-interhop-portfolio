@@ -10,6 +10,8 @@
         baseUrl: <?= json_encode($base_url) ?>,
         dateFormat: <?= json_encode($date_format) ?>,
         firstWeekday: <?= json_encode($first_weekday); ?>,
+        generalApptAutomaticDeletion: <?= json_encode($general_appt_automatic_deletion); ?>,
+        apptAutomaticDeletionChoice: <?= json_encode($appt_automatic_deletion_choice); ?>,
         timeFormat: <?= json_encode($time_format) ?>,
         userSlug: <?= json_encode($role_slug) ?>,
         timezones: <?= json_encode($timezones) ?>,
@@ -213,6 +215,94 @@
                                     <?= lang('display_any_provider_hint') ?>
                                 </span>
                             </div>
+
+                            <!--  general choice for automatic deletion of past appointments -->
+                            <div class="form-group">
+                                <label for="appt-automatic-deletion-choice">
+                                    <h5><?= lang('appointments_automatic_deletion') ?></h5>
+                                </label>
+                                <select class="form-control" id="appt-automatic-deletion-choice"
+                                        data-field="appt_automatic_deletion_choice" onchange="show_corresponding_information()">
+                                    <option value="no-automatic-deletion"><?= lang('no_automatic_deletion') ?></option>
+                                    <option value="general"><?= lang('general_appt_automatic_deletion') ?></option>
+                                    <option value="by-provider"><?= lang('appt_automatic_deletion_by_provider') ?></option>
+                                </select>
+                            </div>
+
+                            <!-- display where the supplier profile is located
+                            and the delay chosen by each supplier for the automatic deletion of his appointments -->
+                            <div id="d1">
+                                <?php
+                                echo lang('where_is_the_provider_profile');
+                                $appt_automatic_deletion_choice=$this->settings_model->get_setting('appt_automatic_deletion_choice');
+                                if ($appt_automatic_deletion_choice == 'by-provider') {
+                                    $providers = $this->providers_model->get_batch();
+                                    $i=0;
+                                    $message_state_appointment_automatic_deletion_by_providers
+                                        =lang('message_state_appointment_deletion_by_providers_part_1').lang('days')
+                                        .lang('message_state_appointment_deletion_by_providers_part_2');
+                                    foreach ($providers as $provider) {
+                                        if ($provider['appt_automatic_deletion_by_provider'] !=0) {
+                                            $i+=1;
+                                            if ($i==1) {
+                                                $message_state_appointment_automatic_deletion_by_providers
+                                                    .= $provider['first_name']." ".$provider['last_name']
+                                                    ." (".$provider['appt_automatic_deletion_by_provider']
+                                                    ." ".lang('days').")";
+                                            }
+                                            if ($i>1) {
+                                                $message_state_appointment_automatic_deletion_by_providers
+                                                    .= ", ".$provider['first_name']." ".$provider['last_name']
+                                                    ." (".$provider['appt_automatic_deletion_by_provider']
+                                                    ." ".lang('days').")";
+                                            }
+                                        }
+                                    };
+                                    if ($i!=0) {
+                                        echo nl2br("\n".$message_state_appointment_automatic_deletion_by_providers).".";
+                                    };
+                                }
+                                ?>
+                            </div>
+
+                            <!-- display the input field for the value of the delay
+                             for automatic deletion of appointments for all providers -->
+                            <div class="form-group" id="d2">
+                                    <label for="general-appt-automatic-deletion">
+                                        <?= lang('appointments_automatic_deletion_hint') ?>
+                                    </label>
+                                    <input id="general-appt-automatic-deletion"
+                                           data-field="general_appt_automatic_deletion"
+                                           class="form-control required" type="number" min="0">
+                            </div>
+
+                            <script>
+                                // Depending on the value entered in parameter ("general" or "by-provider"
+                                // or "no-automatic-deletion"), display only the corresponding information
+                                function show_or_hide_information(selection) {
+                                    if (selection == "general") {
+                                        d1.style.display = "none";
+                                        d2.style.display = "block";
+                                    };
+                                    if (selection == "by-provider") {
+                                        d1.style.display = "block";
+                                        d2.style.display = "none";
+                                    };
+                                    if (selection == "no-automatic-deletion") {
+                                        d1.style.display = "none";
+                                        d2.style.display = "none";
+                                    };
+                                };
+                                // show_or_hide_information(selection) is called when the page
+                                // is displayed according to the value saved in the database
+                                show_or_hide_information(GlobalVariables.apptAutomaticDeletionChoice);
+                                // show_or_hide_information(selection) is called at each change in the drop-down list
+                                function show_corresponding_information() {
+                                    let liste = document.getElementById("appt-automatic-deletion-choice");
+                                    show_or_hide_information(liste.value);
+                                }
+                            </script>
+
                         </div>
                     </div>
                 </fieldset>
@@ -496,6 +586,22 @@
                                 <?= lang('receive_notifications') ?>
                             </label>
                         </div>
+
+                        <!-- if the user is a provider and if the choice of automatic deletion of appointments is by provider,
+                             display the input field for the value of the delay for the automatic deletion of his appointments -->
+                        <br>
+                        <?php $appt_automatic_deletion_choice=$this->settings_model->get_setting('appt_automatic_deletion_choice');
+                        if ((($this->session->userdata('role_slug')) === DB_SLUG_PROVIDER) AND ($appt_automatic_deletion_choice == 'by-provider')): ?>
+                            <div class="form-group">
+                                <label for="appt-automatic-deletion-by-provider">
+                                    <?= lang('appointments_automatic_deletion') ?>
+                                </label>
+                                <input id="appt-automatic-deletion-by-provider"
+                                       data-field="appt_automatic_deletion_by_provider"
+                                       class="form-control required"  type="number"  min="0">
+                                <?= lang('appointments_automatic_deletion_hint') ?>
+                            </div>
+                        <?php endif?>
                     </fieldset>
                 </div>
             </form>
