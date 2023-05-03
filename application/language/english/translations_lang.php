@@ -351,7 +351,14 @@ $lang['invalid_validation_code'] = 'Invalide validation code.';
 $lang['customers_count'] = 'Maximum customers count';
 $lang['another_appointment'] = 'Appointments for a third personne';
 $lang['third_party'] = 'Third party';
-
+ $lang['appointments_automatic_deletion'] = 'Period of automatic deletion of past appointments (in days).';
+$lang['appointments_automatic_deletion_hint'] = 'The period is in days. Type a number or use the sliders. Value 0: no automatic deletion.';
+$lang['general_appt_automatic_deletion'] = 'Impose the same deletion period for all providers.';
+$lang['appt_automatic_deletion_by_provider'] = 'Set the deletion period in each provider profile.';
+$lang['no_automatic_deletion'] = 'No automatic deletion.';
+$lang['where_is_the_provider_profile'] ='The provider profile is accessible in the administrator interface or in the provider interface.';
+$lang['message_state_appointment_deletion_by_providers_part_1'] ='A period for automatic deletion of appointments is already configured (value in ';
+$lang['message_state_appointment_deletion_by_providers_part_2'] =' in parentheses) for the following provider(s): ';
 
 
 // End

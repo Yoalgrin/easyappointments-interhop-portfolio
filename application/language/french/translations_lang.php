@@ -350,5 +350,13 @@ $lang['invalid_validation_code'] = 'Code de validation de l\'email invalide.';
 $lang['customers_count'] = 'Limite de patients';
 $lang['another_appointment'] = 'Rendez vous pour une tierce personne';
 $lang['third_party'] = 'Tierce personne';
-
+$lang['appointments_automatic_deletion'] = 'Délai de suppression automatique des rendez-vous passés.';
+$lang['appointments_automatic_deletion_hint'] = 'Le délai est en jours. Taper un nombre ou utiliser les curseurs. Valeur 0 : pas de suppression automatique.';
+$lang['general_appt_automatic_deletion'] = 'Imposer un même délai de suppression à tous les soignants.';
+$lang['appt_automatic_deletion_by_provider'] = 'Définir le délai de suppression dans chaque profil soignant.';
+$lang['no_automatic_deletion'] = 'Pas de suppression automatique.';
+$lang['where_is_the_provider_profile'] ='Le profil soignant est accessible dans l\'interface administrateur ou dans l\'interface soignant.';
+$lang['message_state_appointment_deletion_by_providers_part_1'] ='Un délai de suppression automatique des rendez-vous est déjà paramétré (valeur en ';
+$lang['message_state_appointment_deletion_by_providers_part_2'] =' entre parenthèses) pour le(s) professionnel(s) de santé suivant(s) : ';
 // End
+
