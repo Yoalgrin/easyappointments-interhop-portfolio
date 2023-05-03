@@ -82,12 +82,21 @@ class Backend_api extends EA_Controller
                 ]),
                 'unavailability_events' => $this->appointments_model->get_batch([
                     'is_unavailable' => TRUE,
-                    'start_datetime >=' => $start_date,
-                    'end_datetime <=' => $end_date
+                    //'start_datetime >=' => $start_date,
+                    //'end_datetime <=' => $end_date
                 ])
             ];
 
             foreach ($response['appointments'] as &$appointment) {
+                if($appointment['is_unavailable'] != 1 && $appointment['appointment_status'] != 'cancelled'){
+                    if($appointment['start_datetime'] < date('Y-m-d H:i:s') && $appointment['end_datetime'] > date('Y-m-d H:i:s')){
+                        $appointment['appointment_status'] = 'happening';
+                        $this->appointments_model->update($appointment);
+                    }elseif($appointment['end_datetime'] < date('Y-m-d H:i:s')){
+                        $appointment['appointment_status'] = 'done';
+                        $this->appointments_model->update($appointment);
+                    }
+                }
                 $appointment['provider'] = $this->providers_model->get_row($appointment['id_users_provider']);
                 $appointment['service'] = $this->services_model->get_row($appointment['id_services']);
                 $appointment['customer'] = $this->customers_model->get_row($appointment['id_users_customer']);
@@ -188,6 +197,15 @@ class Backend_api extends EA_Controller
             $response['appointments'] = $this->appointments_model->get_batch($where_clause);
 
             foreach ($response['appointments'] as &$appointment) {
+                if($appointment['is_unavailable'] != 1 && $appointment['appointment_status'] != 'cancelled'){
+                    if($appointment['start_datetime'] < date('Y-m-d H:i:s') && $appointment['end_datetime'] > date('Y-m-d H:i:s')){
+                        $appointment['appointment_status'] = 'happening';
+                        $this->appointments_model->update($appointment);
+                    }elseif($appointment['end_datetime'] < date('Y-m-d H:i:s')){
+                        $appointment['appointment_status'] = 'done';
+                        $this->appointments_model->update($appointment);
+                    }
+                }
                 $appointment['provider'] = $this->providers_model->get_row($appointment['id_users_provider']);
                 $appointment['service'] = $this->services_model->get_row($appointment['id_services']);
                 $appointment['customer'] = $this->customers_model->get_row($appointment['id_users_customer']);
@@ -253,7 +271,7 @@ class Backend_api extends EA_Controller
             // Save appointment changes to the database.
             if ($this->input->post('appointment_data')) {
                 $appointment = json_decode($this->input->post('appointment_data'), TRUE);
-
+                $appointment['appointment_status'] = 'planned';
                 $required_privileges = (!isset($appointment['id']))
                     ? $this->privileges[PRIV_APPOINTMENTS]['add']
                     : $this->privileges[PRIV_APPOINTMENTS]['edit'];
@@ -594,6 +612,30 @@ class Backend_api extends EA_Controller
             ->set_output(json_encode($response));
     }
 
+    public function ajax_get_provider_appointments(){
+        try {
+            $unavailableProvider = json_decode($this->input->post('provider_id'));
+            $appointments = $this->appointments_model->get_batch([
+                'id_users_provider' => $unavailableProvider,
+            ]);
+            $appts = array();
+            foreach ($appointments as $apt){
+                $appts[] = $apt;
+            }
+            $response = $appts;
+        }catch (Exception $exception) {
+            $this->output->set_status_header(500);
+
+            $response = [
+                'message' => $exception->getMessage(),
+                'trace' => config('debug') ? $exception->getTrace() : []
+            ];
+        }
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
     /**
      * Insert of update unavailable time period to database.
      */
@@ -611,6 +653,40 @@ class Backend_api extends EA_Controller
             }
 
             $provider = $this->providers_model->get_row($unavailable['id_users_provider']);
+
+            //Check if the provider has scheduled appointments on the selected period of time,
+            //and if so : send to each customer a mail to inform them that their appointment has been canceled
+            $appointments = $this->appointments_model->get_batch([
+                    'id_users_provider' => $unavailable['id_users_provider'],
+            ]);
+
+            //Pick only the appointments related to the cancelled period
+            $appts = array();
+            foreach ($appointments as $appointment){
+                if (($appointment['start_datetime'] >= $unavailable['start_datetime'])
+                && ($appointment['start_datetime']) <= $unavailable['end_datetime'] ){
+                    $affectedAppointment = $this->appointments_model->get_row($appointment['id']);
+                    $affectedAppointment['appointment_status'] = 'cancelled';
+                    $this->appointments_model->update($affectedAppointment);
+                    $appts[] = $affectedAppointment;
+                }
+            }
+            //Sort them by ascending start_datetime (instead of ascending ID)
+            $dateAsc = array();
+            foreach ($appts as $key => $value){
+                $dateAsc[] = strtotime($value['start_datetime']);
+            }
+            array_multisort($dateAsc, SORT_ASC, $appts);
+
+            $reason = $unavailable['notes'];
+            $settings = [
+                'company_name' => $this->settings_model->get_setting('company_name'),
+                'company_link' => $this->settings_model->get_setting('company_link'),
+                'company_email' => $this->settings_model->get_setting('company_email'),
+                'date_format' => $this->settings_model->get_setting('date_format'),
+                'time_format' => $this->settings_model->get_setting('time_format')
+            ];
+            $this->notifications->notify_appointments_cancelled($appts,$provider,$reason, $settings);
 
             // Add appointment
             $unavailable['id'] = $this->appointments_model->add_unavailable($unavailable);

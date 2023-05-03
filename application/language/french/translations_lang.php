@@ -321,7 +321,7 @@ $lang['add_working_plan_exceptions_during_each_day'] = 'Ajouter des horaires par
 $lang['add_working_plan_exception'] = 'Ajouter des horaires particuliers';
 $lang['require_phone_number'] = 'Numéro de téléphone obligatoire';
 $lang['require_phone_number_hint'] = 'When enabled, customers and users will need to enter the customer\'s phone number when booking an appointment';
-$lang['check_spam_folder'] = 'Please check your spam folder if the email does not arrive within a few minutes.';
+$lang['check_spam_folder'] = 'Veuillez vérifier le dossier spam de votre messagerie si vous n\'avez pas reçu l\'email d\'ici quelques minutes.';
 $lang['api_token_hint'] = 'Set a secret token in order to enable the token based authentication of the Easy!Appointments API.';
 $lang['timezone'] = 'Timezone';
 $lang['overwrite_existing_working_plans'] = 'This will overwrite the existing provider working plans, are you sure that you want to continue?';
@@ -358,5 +358,17 @@ $lang['no_automatic_deletion'] = 'Pas de suppression automatique.';
 $lang['where_is_the_provider_profile'] ='Le profil soignant est accessible dans l\'interface administrateur ou dans l\'interface soignant.';
 $lang['message_state_appointment_deletion_by_providers_part_1'] ='Un délai de suppression automatique des rendez-vous est déjà paramétré (valeur en ';
 $lang['message_state_appointment_deletion_by_providers_part_2'] =' entre parenthèses) pour le(s) professionnel(s) de santé suivant(s) : ';
+$lang['appointment_cancelled_by_provider'] = 'Votre rendez-vous a été annulé par le soignant :';
+$lang['appointment_cancelled_for_provider'] = 'Suite à la saisie d\'une période d\'indisponibilité, les rendez-vous suivants ont été annulés :';
+$lang['warning_single_appointment_affected'] = 'Un rendez-vous est prévu sur la période sélectionnée. Le ou les patients concernés seront notifiés par mail après validation.';
+$lang['warning_multiple_appointments_affected'] = ' rendez-vous sont prévus sur la période sélectionnée. Les patients concernés seront notifiés par mail après validation.';
+$lang['cancel_appointment_message'] = 'Message du soignant';
+$lang['meeting'] = 'Lien pour la téléconsultation';
+$lang['sharing_docs'] = 'Lien pour le partage de documents';
+$lang['key_externals_tools'] = 'Clé outils externes';
+$lang['externals_tools'] = 'Outils externes';
+$lang['link'] = 'Lien';
+$lang['telemedicine'] = 'Téléconsultation';
+
 // End
 

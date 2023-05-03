@@ -351,7 +351,7 @@ $lang['invalid_validation_code'] = 'Invalide validation code.';
 $lang['customers_count'] = 'Maximum customers count';
 $lang['another_appointment'] = 'Appointments for a third personne';
 $lang['third_party'] = 'Third party';
- $lang['appointments_automatic_deletion'] = 'Period of automatic deletion of past appointments (in days).';
+$lang['appointments_automatic_deletion'] = 'Period of automatic deletion of past appointments (in days).';
 $lang['appointments_automatic_deletion_hint'] = 'The period is in days. Type a number or use the sliders. Value 0: no automatic deletion.';
 $lang['general_appt_automatic_deletion'] = 'Impose the same deletion period for all providers.';
 $lang['appt_automatic_deletion_by_provider'] = 'Set the deletion period in each provider profile.';
@@ -359,6 +359,15 @@ $lang['no_automatic_deletion'] = 'No automatic deletion.';
 $lang['where_is_the_provider_profile'] ='The provider profile is accessible in the administrator interface or in the provider interface.';
 $lang['message_state_appointment_deletion_by_providers_part_1'] ='A period for automatic deletion of appointments is already configured (value in ';
 $lang['message_state_appointment_deletion_by_providers_part_2'] =' in parentheses) for the following provider(s): ';
-
+$lang['appointment_cancelled_by_provider'] = 'Your appointment has been cancelled by the provider :';
+$lang['appointment_cancelled_for_provider'] = 'Due to the input of a unavailability period, the following appointments has been cancelled :';
+$lang['warning_single_appointment_affected'] = 'An appointment is scheduled for the selected period. The patient(s) concerned will be notified by email after validation.';
+$lang['warning_multiple_appointments_affected'] = ' appointments are scheduled during the selected period. The patients concerned will be notified by email after validation.';
+$lang['meeting'] = 'link for telemedicine';
+$lang['sharing_docs'] = 'Link for sharing docs';
+$lang['key_externals_tools'] = 'Key externals tools';
+$lang['externals_tools'] = 'Externals Tools';
+$lang['link'] = 'Link';
+$lang['telemedicine'] = 'Telemedicine';
 
 // End

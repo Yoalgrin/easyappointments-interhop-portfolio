@@ -34,8 +34,21 @@
             </tr>
             <tr>
                 <td class="label" style="padding: 3px;font-weight: bold;"><?= lang('timezone') ?></td>
-                <td style="padding: 3px;"><?= $appointment_timezone ?></td>
+                <td style="padding: 3px;"> <?= $appointment_timezone ?></td>
             </tr>
+            <tr>
+                <td class="label" style="padding: 3px;font-weight: bold;"><?= lang('meeting') ?></td>
+                <td style="padding: 3px;"><a href="<?= $appointment_link_meeting ?>"><?= $appointment_link_meeting ?></a></td>
+            </tr>
+            <tr>
+                <td class="label" style="padding: 3px;font-weight: bold;"><?= lang('sharing_docs') ?></td>
+                <td style="padding: 3px;"><a href="<?= $sharing_docs_link ?>" style="width: 600px;"><?= $sharing_docs_link ?></a></td>
+            </tr>
+
+
+
+
+
         </table>
 
         <h2><?= lang('customer_details_title') ?></h2>
@@ -61,6 +74,7 @@
         <h2><?= lang('appointment_link_title') ?></h2>
         <a href="<?= $appointment_link ?>" style="width: 600px;"><?= $appointment_link ?></a>
     </div>
+
 
     <div id="footer" style="padding: 10px; text-align: center; margin-top: 10px;
                 border-top: 1px solid #EEE; background: #FAFAFA;">

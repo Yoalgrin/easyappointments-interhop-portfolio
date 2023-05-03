@@ -111,6 +111,7 @@ window.BackendCalendarDefaultView = window.BackendCalendarDefaultView || {};
                 $dialog.find('#appointment-id').val(appointment.id);
                 $dialog.find('#select-service').val(appointment.id_services).trigger('change');
                 $dialog.find('#select-provider').val(appointment.id_users_provider);
+                $dialog.find('#key-externals-tools').val(appointment.key_externals_tools);
 
                 // Set the start and end datetime of the appointment.
                 startDatetime = Date.parseExact(appointment.start_datetime, 'yyyy-MM-dd HH:mm:ss');
@@ -1070,6 +1071,20 @@ window.BackendCalendarDefaultView = window.BackendCalendarDefaultView || {};
                         allDay: false,
                         data: appointment // Store appointment data for later use.
                     };
+                    switch(true){
+                        case appointment.appointment_status == 'cancelled' :
+                            appointmentEvent.color = '#f44336';
+                            break;
+                        case appointment.appointment_status == 'planned' :
+                            appointmentEvent.color = '#8fce00';
+                            break;
+                        case appointment.appointment_status == 'done' :
+                            appointmentEvent.color = '#999999';
+                            break;
+                        case appointment.appointment_status == 'happening' :
+                            appointmentEvent.color = '#ffd966';
+                            break;
+                    }
 
                     calendarEventSource.push(appointmentEvent);
                 });
@@ -1495,6 +1510,7 @@ window.BackendCalendarDefaultView = window.BackendCalendarDefaultView || {};
             height: getCalendarHeight(),
             editable: true,
             firstDay: firstWeekdayNumber,
+            scrollTime: '08:30:00',
             slotDuration: '00:15:00',
             snapDuration: '00:30:00',
             slotLabelInterval: '01:00',
@@ -1626,7 +1642,6 @@ window.BackendCalendarDefaultView = window.BackendCalendarDefaultView || {};
 
         // Trigger once to set the proper footer position after calendar initialization.
         calendarWindowResize();
-
         // Fill the select list boxes of the page.
         if (GlobalVariables.availableProviders.length > 0) {
             $('<optgroup/>', {

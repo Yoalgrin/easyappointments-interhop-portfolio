@@ -261,6 +261,13 @@
                                 </div>
 
                                 <div class="form-group">
+                                    <label for="key-externals-tools" class="control-label">
+                                        <?= lang('key_externals_tools') ?>
+                                    </label>
+                                    <input id="key-externals-tools" class="form-control" disabled="disabled"></input>
+                                </div>
+
+                                <div class="form-group">
                                     <label class="control-label"><?= lang('timezone') ?></label>
 
                                     <ul>
