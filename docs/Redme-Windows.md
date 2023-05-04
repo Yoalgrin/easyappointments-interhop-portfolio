@@ -159,4 +159,9 @@ A cette étape la, vous devriez arriver sur la page d’accueil de votre applica
 
 ![MicrosoftTeams-image (1)](https://user-images.githubusercontent.com/101267251/206697575-70881c80-b67b-44fc-883f-c23393900c27.png)
 
+Une fois l'installation terminée, le modèle de votre base de données devrait être celui indiqué ci-dessous. Vous trouverez dans la documentation une version de ce schéma modifiable à l'aide de https://app.diagrams.net qui est gratuit et opensource.
+
+<a href="https://ibb.co/F72Smrq"><img src="https://i.ibb.co/NY58tvn/ea-interhop-drawio.png" alt="ea-interhop-drawio" border="0"></a>
+
+
 Bienvenue sur Easyappointments, bon dev à vous :)
