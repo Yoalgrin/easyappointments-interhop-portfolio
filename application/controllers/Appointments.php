@@ -571,6 +571,7 @@ class Appointments extends EA_Controller
 
             $appointment['id_users_customer'] = $customer_id;
             $appointment['is_unavailable'] = (int)$appointment['is_unavailable']; // needs to be type casted
+            $appointment['appointment_status'] = 'planned';
             $appointment['id'] = $this->appointments_model->add($appointment);
             $appointment['hash'] = $this->appointments_model->get_value('hash', $appointment['id']);
             $appointment['key_externals_tools'] = $this->appointments_model->get_value('key_externals_tools', $appointment['id']);

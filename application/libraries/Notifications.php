@@ -260,5 +260,62 @@ class Notifications {
         }
     }
 
+    /**
+     * Send the required notifications, related to an appointment cancellation.
+     *
+     * @param array $appointments Appointments record.
+     * @param array $provider Provider record.
+     * @param string $reason Reason for cancellation (can be blank).
+     * @param array $settings Required settings for the notification content.
+     */
+    public function notify_appointments_cancelled(array $appointments, array $provider, string $reason, array $settings)
+    {
+        try
+        {
+            $email = new EmailClient($this->CI, $this->CI->config->config);
+
+            if(!empty($appointments))
+            {
+            //Send an individual mail to each customer concerned
+                foreach ($appointments as $appointment){
+                    $service = $this->CI->services_model->get_row($appointment['id_services']);
+                    $customer = $this->CI->customers_model->get_row($appointment['id_users_customer']);
+                    $email->send_cancelled_appointment($appointment, $provider,
+                        $service, $customer, $settings, new Email($customer['email']),'customer',
+                        new Text($reason));
+                }
+            //Also send a single recap mail to the provider and each one of the secretaries
+                $secretaries = $this->CI->secretaries_model->get_batch();
+                $service = array();
+                $customer = array();
+
+                foreach ($secretaries as $secretary)
+                {
+                    if ($secretary['settings']['notifications'] === '0')
+                    {
+                        continue;
+                    }
+
+                    if (!in_array($provider['id'], $secretary['providers']))
+                    {
+                        continue;
+                    }
+                        //send recap mail : fait sur la même base mais autorisant array...
+                    $email->send_cancelled_appointment($appointments, $provider,
+                        $service, $customer, $settings, new Email($secretary['email']), 'secretary',
+                        new Text($reason));
+                }
+                $email->send_cancelled_appointment($appointments, $provider,
+                    $service, $customer, $settings, new Email($provider['email']), 'provider',
+                    new Text($reason));
+            }
+        }
+        catch (Exception $exception)
+        {
+            log_message('error', $exception->getMessage());
+            log_message('error', $exception->getTraceAsString());
+        }
+    }
+
 
 }
