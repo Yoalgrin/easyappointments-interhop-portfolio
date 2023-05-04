@@ -175,7 +175,7 @@ class Appointments_model extends EA_Model {
      *
      * @throws Exception If appointment record could not be updated.
      */
-    protected function update($appointment)
+    public function update($appointment)
     {
         $this->db->where('id', $appointment['id']);
         if ( ! $this->db->update('appointments', $appointment))
@@ -303,7 +303,6 @@ class Appointments_model extends EA_Model {
             throw new Exception('Invalid argument given. Expected integer for the $appointment_id: '
                 . $appointment_id);
         }
-
         return $this->db->get_where('appointments', ['id' => $appointment_id])->row_array();
     }
 
