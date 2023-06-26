@@ -57,7 +57,7 @@ class Appointments extends EA_Controller
                 return;
             }
 
-            $available_services = $this->services_model->get_available_services("is_private = 0");
+            $available_services = $this->services_model->get_available_services("is_private = 0 AND id_users IS NOT NULL");
             $available_providers = $this->providers_model->get_available_providers();
             $company_name = $this->settings_model->get_setting('company_name');
             $book_advance_timeout = $this->settings_model->get_setting('book_advance_timeout');
@@ -73,6 +73,7 @@ class Appointments extends EA_Controller
             $privacy_policy_content = $this->settings_model->get_setting('privacy_policy_content');
             $display_any_provider = $this->settings_model->get_setting('display_any_provider');
             $timezones = $this->timezones->to_array();
+            $switch_display = $this->settings_model->get_setting('switch_display');
 
             // Remove the data that are not needed inside the $available_providers array.
             foreach ($available_providers as $index => $provider) {
@@ -86,6 +87,7 @@ class Appointments extends EA_Controller
                 $available_providers[$index] = $stripped_data;
             }
 
+
             // Remove the data that are not needed inside the $available_services array.
             foreach ($available_services as $index => $service) {
                 $stripped_data = [
@@ -97,10 +99,20 @@ class Appointments extends EA_Controller
                     'currency' => $service['currency'],
                     'description' => $service['description'],
                     'category_id' => $service['category_id'],
-                    'category_name' => $service['category_name']
+                    'category_name' => $service['category_name'],
+                    'providers' => $service['providers']
                 ];
                 $available_services[$index] = $stripped_data;
+
+                //Remove the service from the $available_services array if no one can provide it
+                if (empty($service['providers'])) {
+                    unset($available_services[$index]);
+                }
             }
+
+            //Generate service select HTML from available services
+            $options = $this->generateServicesOptions($available_services);
+
 
             // If an appointment hash is provided then it means that the customer is trying to edit a registered
             // appointment record.
@@ -217,12 +229,15 @@ class Appointments extends EA_Controller
                 'privacy_policy_content' => $privacy_policy_content,
                 'timezones' => $timezones,
                 'display_any_provider' => $display_any_provider,
+                'switch_display' => $switch_display,
+                'services_options' => $options
             ];
         } catch (Exception $exception) {
             $variables['exceptions'][] = $exception;
         }
 
         $this->load->view('appointments/book', $variables);
+
     }
 
     /**
@@ -336,7 +351,7 @@ class Appointments extends EA_Controller
         $add_to_google_url_params = [
             'action' => 'TEMPLATE',
             'text' => $service['name'],
-            'dates' => $appointment_start_instance->format('Ymd\THis\Z') . '/' . $appointment_end_instance->format('Ymd\THis\Z'),
+            'dates' => $appointment_start_instance->format('Ymd\THis\Z') . 'Appointments.php/' . $appointment_end_instance->format('Ymd\THis\Z'),
             'location' => $company_name,
             'details' => 'View/Change Appointment: ' . site_url('appointments/index/' . $appointment['hash']),
             'add' => $provider['email'] . ',' . $customer['email']
@@ -523,7 +538,7 @@ class Appointments extends EA_Controller
             // Check appointment availability before registering it to the database.
             $appointment['id_users_provider'] = $this->check_datetime_availability();
 
-            if($post_data['validation_code'] != $_SESSION['validation_code']){
+            if ($post_data['validation_code'] != $_SESSION['validation_code']) {
                 throw new Exception(lang('invalid_validation_code'));
             }
 
@@ -759,5 +774,73 @@ class Appointments extends EA_Controller
         }
 
         return $provider_list;
+    }
+
+    /**
+     *Generate an HTML <select> with services sorted by category.
+     *
+     * @param array $services All available services.
+     *
+     * @return string The HTML <select> generated.
+     */
+    function generateServicesOptions($services)
+    {
+
+        $has_category = FALSE;
+        foreach ($services as $service) {
+
+            if ($service['category_id'] != NULL) {
+                $has_category = TRUE;
+                break;
+            }
+        }
+
+        if ($has_category) {
+            $grouped_services = [];
+
+            foreach ($services as $service) {
+                if ($service['category_id'] != NULL) {
+                    if (!isset($grouped_services[$service['category_name']])) {
+                        $grouped_services[$service['category_name']] = [];
+                    }
+
+                    $grouped_services[$service['category_name']][] = $service;
+                }
+            }
+
+            // We need the uncategorized services at the end of the list so we will use
+            // another iteration only for the uncategorized services.
+            $grouped_services['uncategorized'] = [];
+            foreach ($services as $service) {
+                if ($service['category_id'] == NULL) {
+                    $grouped_services['uncategorized'][] = $service;
+                }
+            }
+
+            $options = '';
+
+            foreach ($grouped_services as $key => $group) {
+                $group_label = ($key != 'uncategorized')
+                    ? $group[0]['category_name'] : lang('uncategorized');
+
+                if (count($group) > 0) {
+                    $options .= '<optgroup label="' . $group_label . '">';
+                    foreach ($group as $service) {
+                        $options .= '<option value="' . $service['id'] . '">'
+                            . $service['name'] . '</option>';
+                    }
+                    $options .= '</optgroup>';
+                }
+            }
+        }
+        else {
+            $options = '';
+
+            foreach ($services as $service) {
+                $options .= '<option value="' . $service['id'] . '">' . $service['name'] . '</option>';
+            }
+        }
+
+        return $options;
     }
 }

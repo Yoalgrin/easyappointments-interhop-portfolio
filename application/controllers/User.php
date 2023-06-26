@@ -50,7 +50,6 @@ class User extends EA_Controller
      *
      * @throws Exception
      */
-
     public function login()
     {
         $view['base_url'] = config('base_url');
@@ -209,4 +208,24 @@ class User extends EA_Controller
             ->set_content_type('application/json')
             ->set_output(json_encode($response));
     }
+
+
+    /**
+     * Reset all user passwords and email them the new password.
+     */
+    public function reset_passwords()
+    {
+        echo "test";
+        $this->load->model('User_model');
+
+        $result = $this->user_model->reset_all_passwords();
+
+        if ($result === TRUE) {
+            echo "Passwords reset successfully.";
+        } else {
+            echo "Failed to reset passwords.";
+        }
+    }
+
+
 }

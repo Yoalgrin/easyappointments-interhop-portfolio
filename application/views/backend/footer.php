@@ -27,6 +27,12 @@
 
         |
 
+        <span class="CGU">
+                        <a href=<?= site_url('CGU') ?>>Conditions générales d'utilisation</a>
+        </span>
+
+        |
+
         <span id="select-language" class="badge badge-secondary">
             <i class="fas fa-language mr-2"></i>
         	<?= ucfirst(config('language')) ?>

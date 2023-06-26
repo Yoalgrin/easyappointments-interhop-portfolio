@@ -329,4 +329,13 @@ $lang['list'] = 'List';
 $lang['default'] = 'Default';
 $lang['table'] = 'Table';
 $lang['date'] = 'Date';
-// End
+$lang['switch_display'] = 'Switch display';
+$lang['provider_first'] = 'Provider first';
+$lang['service_first'] = 'Service first';
+$lang['switch_display_hint'] = 'Display all services for a provider, or all providers for a service';
+$lang['telemedicine_option'] = 'Enable telemedicine';
+$lang['telemedicine_option_hint'] = 'Enable external tools links generation for telemedicine and sharing docs';
+$lang['external_links_configuration'] = 'Telemedicine configuration';
+$lang['telemedicine_link'] = 'Telemedicine tool link';
+$lang['docs_sharing_link'] = 'Docs sharing tool link';
+$lang['no_external_tool'] = 'No External Tool';

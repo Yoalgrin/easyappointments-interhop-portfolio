@@ -1143,6 +1143,189 @@ class Backend_api extends EA_Controller
             ->set_output(json_encode($response));
     }
 
+
+    /**
+     * Save (insert or update) external tool record.
+     */
+    public function ajax_save_service_external_tool()
+    {
+        try {
+            $external_tool = json_decode($this->input->post('external_tool'), TRUE);
+
+            $required_privileges = (!isset($external_tool['id']))
+                ? $this->privileges[PRIV_SERVICES]['add']
+                : $this->privileges[PRIV_SERVICES]['edit'];
+            if ($required_privileges == FALSE) {
+                throw new Exception('You do not have the required privileges for this task.');
+            }
+
+            $external_tool_id = $this->services_model->add_external_tool($external_tool);
+
+            $response = [
+                'status' => AJAX_SUCCESS,
+                'id' => $external_tool_id
+            ];
+        } catch (Exception $exception) {
+            $this->output->set_status_header(500);
+
+            $response = [
+                'message' => $exception->getMessage(),
+                'trace' => config('debug') ? $exception->getTrace() : []
+            ];
+        }
+
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+    /**
+     * Delete external tool record from database.
+     */
+    public function ajax_delete_service_external_tool()
+    {
+
+        try {
+            if ($this->privileges[PRIV_SERVICES]['delete'] == FALSE) {
+                throw new Exception('You do not have the required privileges for this task.');
+            }
+
+            $result = $this->services_model->delete_external_tool($this->input->post('externalTool_id'));
+
+            $response = $result ? AJAX_SUCCESS : AJAX_FAILURE;
+        } catch (Exception $exception) {
+            $this->output->set_status_header(500);
+
+            $response = [
+                'message' => $exception->getMessage(),
+                'trace' => config('debug') ? $exception->getTrace() : []
+            ];
+        }
+
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+    /**
+     * Filter external tools with key string.
+     */
+    public function ajax_filter_service_externals_tools()
+    {
+        try {
+            if ($this->privileges[PRIV_SERVICES]['view'] == FALSE) {
+                throw new Exception('You do not have the required privileges for this task.');
+            }
+
+            $key = $this->db->escape_str($this->input->post('key'));
+
+            $where = '(name LIKE "%' . $key . '%" OR description LIKE "%' . $key . '%")';
+
+            $response = $this->services_model->get_all_external_tools($where);
+        } catch (Exception $exception) {
+            $this->output->set_status_header(500);
+
+            $response = [
+                'message' => $exception->getMessage(),
+                'trace' => config('debug') ? $exception->getTrace() : []
+            ];
+        }
+
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+
+    /**
+     * Save external tool type into database.
+     */
+    public function ajax_save_tool_type()
+    {
+        try {
+            $tool_type = json_decode($this->input->post('tool_type'), TRUE);
+
+            $required_privileges = (!isset($tool_type['id']))
+                ? $this->privileges[PRIV_SERVICES]['add']
+                : $this->privileges[PRIV_SERVICES]['edit'];
+            if ($required_privileges == FALSE) {
+                throw new Exception('You do not have the required privileges for this task.');
+            }
+
+            $tool_type_id = $this->services_model->add_tool_type($tool_type);
+
+            $response = [
+                'status' => AJAX_SUCCESS,
+                'id' => $tool_type_id
+            ];
+        } catch (Exception $exception) {
+            $this->output->set_status_header(500);
+
+            $response = [
+                'message' => $exception->getMessage(),
+                'trace' => config('debug') ? $exception->getTrace() : []
+            ];
+        }
+
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+
+    /**
+     * Delete external tool type from database.
+     */
+    public function ajax_delete_tool_type()
+    {
+        try {
+            if ($this->privileges[PRIV_SERVICES]['delete'] == FALSE) {
+                throw new Exception('You do not have the required privileges for this task.');
+            }
+
+            $result = $this->services_model->delete_tool_type($this->input->post('tool_type_id'));
+
+            $response = $result ? AJAX_SUCCESS : AJAX_FAILURE;
+        } catch (Exception $exception) {
+            $this->output->set_status_header(500);
+
+            $response = [
+                'message' => $exception->getMessage(),
+                'trace' => config('debug') ? $exception->getTrace() : []
+            ];
+        }
+
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+
+    /**
+     * Get all external tool types from the database.
+     */
+    public function ajax_get_tool_types()
+    {
+        try {
+            if ($this->privileges[PRIV_SERVICES]['view'] == FALSE) {
+                throw new Exception('You do not have the required privileges for this task.');
+            }
+            $response = $this->services_model->get_external_tool_types();
+        } catch (Exception $exception) {
+            $this->output->set_status_header(500);
+
+            $response = [
+                'message' => $exception->getMessage(),
+                'trace' => config('debug') ? $exception->getTrace() : []
+            ];
+        }
+
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+
     /**
      * Filter admin records with string key.
      */
@@ -1659,6 +1842,5 @@ class Backend_api extends EA_Controller
             ->set_content_type('application/json')
             ->set_output(json_encode($response));
     }
-
 
 }

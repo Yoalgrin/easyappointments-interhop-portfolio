@@ -369,6 +369,31 @@ $lang['key_externals_tools'] = 'Clé outils externes';
 $lang['externals_tools'] = 'Outils externes';
 $lang['link'] = 'Lien';
 $lang['telemedicine'] = 'Téléconsultation';
+$lang['switch_display'] = 'Alterner l\'affichage';
+$lang['provider_first'] = 'Soignant d\'abord';
+$lang['service_first'] = 'Consultation d\'abord';
+$lang['switch_display_hint'] = 'Affiche toutes les consultations pour un soignant, ou tous les soignants pour une consultation';
+$lang['telemedicine_option'] = 'Active la téléconsultation';
+$lang['telemedicine_option_hint'] = 'Permet de générer des liens de visio et de partage de documents pour la téléconsultation';
+$lang['external_links_configuration'] = 'Configuration de la téléconsultation';
+$lang['telemedicine_link'] = 'Lien de l\'outil de téléconsultation';
+$lang['docs_sharing_link'] = 'Lien de l\'outil de partage de documents';
+$lang['no_external_tool'] = 'Pas d\'outil externe';
+$lang['service_external_tool_saved'] = 'Outil externe enregistré';
+$lang['service_external_tool_deleted'] = 'Outil externe supprimé';
+$lang['type'] = 'Type';
+$lang['add_type'] = 'Ajouter un nouveau type';
+$lang['new_type_saved'] = 'Nouveau type d\'outil enregistré';
+$lang['delete_type'] = 'Supprimer ce type ?';
+$lang['type_deleted'] = 'Type d\'outil supprimé';
+$lang['delete_external_tool'] = 'Supprimer l\'outil externe ?';
+$lang['no_tool_type'] = 'Pas de type d\'outil externe';
+$lang['reset_all_passwords'] = 'Réinitialiser tous les mots de passe';
+$lang['CGU'] = 'Mentions légales';
+$lang['terms_and_conditions'] = 'Conditions générales d\'utilisation et politique de confidentialité';
+$lang['reset_all_passwords'] = 'Réinitialiser tous les mots de passe';
+//End
 
-// End
+
+
 

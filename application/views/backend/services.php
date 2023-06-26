@@ -1,7 +1,12 @@
+<script src="<?= asset_url('assets/js/general_functions.js') ?>"></script>
 <script src="<?= asset_url('assets/js/backend_services_helper.js') ?>"></script>
 <script src="<?= asset_url('assets/js/backend_categories_helper.js') ?>"></script>
+<script src="<?= asset_url('assets/js/backend_external_tools_helper.js') ?>"></script>
 <script src="<?= asset_url('assets/js/backend_services.js') ?>"></script>
+
+
 <script>
+
     var GlobalVariables = {
         csrfToken: <?= json_encode($this->security->get_csrf_hash()) ?>,
         baseUrl: <?= json_encode($base_url) ?>,
@@ -10,6 +15,9 @@
         services: <?= json_encode($services) ?>,
         categories: <?= json_encode($categories) ?>,
         timezones: <?= json_encode($timezones) ?>,
+        externalsTools: <?= json_encode($externals_tools) ?>,
+        externalsToolsTypes: <?= json_encode($externals_tools_types) ?>,
+
         user: {
             id: <?= $user_id ?>,
             email: <?= json_encode($user_email) ?>,
@@ -22,6 +30,7 @@
     $(function () {
         BackendServices.initialize(true);
     });
+
 </script>
 
 <div class="container-fluid backend-page" id="services-page">
@@ -34,6 +43,11 @@
         <li class="nav-item">
             <a class="nav-link" href="#categories" data-toggle="tab">
                 <?= lang('categories') ?>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#externals-tools" data-toggle="tab">
+                <?= lang('externals_tools') ?>
             </a>
         </li>
     </ul>
@@ -169,7 +183,6 @@
                     <div class="form-group">
                         <label for="service-location">
                             <?= lang('location') ?>
-
                         </label>
                         <input id="service-location" class="form-control">
                     </div>
@@ -180,6 +193,12 @@
                         </label>
                         <textarea id="service-description" rows="4" class="form-control"></textarea>
                     </div>
+
+                    <label for="service-externals-tools">
+                        <h5><?= lang('externals_tools') ?></h5>
+                    </label>
+                    <div id="service-externals-tools" class="card card-body bg-light border-light "></div>
+
                 </div>
             </div>
         </div>
@@ -280,6 +299,117 @@
                         </div>
                         <span class="form-text text-muted"><?= lang('no_public_category') ?></span>
                     </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- EXTERNAL TOOLS TAB -->
+
+        <div class="tab-pane" id="externals-tools">
+            <div class="row">
+                <div id="filter-externals-tools" class="filter-records column col-12 col-md-5">
+                    <form class="input-append mb-4">
+                        <div class="input-group">
+                            <input type="text" class="key form-control">
+
+                            <div class="input-group-addon">
+                                <div>
+                                    <button class="filter btn btn-outline-secondary" type="submit"
+                                            data-tippy-content="<?= lang('filter') ?>">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                    <button class="clear btn btn-outline-secondary" type="button"
+                                            data-tippy-content="<?= lang('clear') ?>">
+                                        <i class="fas fa-redo-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <h3><?= lang('externals_tools') ?></h3>
+                    <div class="results"></div>
+                </div>
+
+                <div class="record-details col-12 col-md-5">
+                    <div class="btn-toolbar mb-4">
+                        <div class="add-edit-delete-group btn-group">
+                            <button id="add-external-tool" class="btn btn-primary">
+                                <i class="fas fa-plus-square mr-2"></i>
+                                <?= lang('add') ?>
+                            </button>
+                            <button id="edit-external-tool" class="btn btn-outline-secondary" disabled="disabled">
+                                <i class="fas fa-edit mr-2"></i>
+                                <?= lang('edit') ?>
+                            </button>
+                            <button id="delete-external-tool" class="btn btn-outline-secondary" disabled="disabled">
+                                <i class="fas fa-trash-alt mr-2"></i>
+                                <?= lang('delete') ?>
+                            </button>
+                        </div>
+
+                        <div class="save-cancel-group btn-group" style="display:none;">
+                            <button id="save-external-tool" class="btn btn-primary">
+                                <i class="fas fa-check-square mr-2"></i>
+                                <?= lang('save') ?>
+                            </button>
+                            <button id="cancel-external-tool" class="btn btn-outline-secondary" disabled="disabled">
+                                <i class="fas fa-ban mr-2"></i>
+                                <?= lang('cancel') ?>
+                            </button>
+                        </div>
+                    </div>
+
+                    <h3><?= lang('details') ?></h3>
+
+                    <div class="form-message alert" style="display:none;"></div>
+
+                    <input type="hidden" id="external-tool-id">
+
+                    <div class="form-group">
+                        <label for="external-tool-name">
+                            <?= lang('name') ?>
+                            <span class="text-danger">*</span>
+                        </label>
+                        <input id="external-tool-name" class="form-control required">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="external-tool-description">
+                            <?= lang('description') ?>
+
+                        </label>
+                        <textarea id="external-tool-description" rows="4" class="form-control"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="external-tool-link">
+                            <?= lang('link') ?>
+                        </label>
+                        <input id="external-tool-link" class="form-control">
+                    </div>
+
+                    <fieldset class="form-group" id="fieldset-tool-type">
+                        <label for="external-tool-type">
+                            <?= lang('type') ?>
+                        </label>
+
+                        <div id="div-form-type">
+                            <select id="external-tool-type" class="form-control"></select>
+
+                            <br>
+
+                            <div id="btn-type">
+                                <button id="add-tool-type" class="btn btn-primary">
+                                    <i class="fas fa-plus-square mr-2"></i>
+                                </button>
+                                <button id="delete-tool-type" class="btn btn-outline-secondary" disabled="disabled">
+                                    <i class="fas fa-trash-alt mr-2"></i>
+                            </div>
+                            </button>
+                        </div>
+                    </fieldset>
 
                 </div>
             </div>

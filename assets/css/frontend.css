@@ -266,6 +266,16 @@ body {
     margin: 15px 0;
 }
 
+#book-appointment-wizard .switch-display-div {
+    display: flex;
+    flex-direction: column;
+}
+
+#book-appointment-wizard #switch-display-div-reverse {
+    display: flex;
+    flex-direction: column-reverse;
+}
+
 @media (min-width: 768px) {
     .wrapper {
         min-height: 100vh;
@@ -407,6 +417,12 @@ body {
 
 .ui-dialog .ui-dialog-title {
     font-size: 1.2em;
+}
+
+.button-back-custom {
+    position: absolute;
+    bottom: 80px;
+    left: 20px;
 }
 
 @media (min-width: 768px) {

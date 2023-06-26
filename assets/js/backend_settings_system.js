@@ -63,6 +63,8 @@
                 BackendSettings.wp.setup(workingPlan);
                 BackendSettings.wp.timepickers(false);
             });
+
+
     };
 
     /**
@@ -102,6 +104,11 @@
         settings.push({
             name: 'display_any_provider',
             value: $('#display-any-provider').prop('checked') ? '1' : '0'
+        });
+
+        settings.push({
+            name:'telemedicine_option',
+            value: $('#telemedicine-option').prop('checked') ? '1' : '0'
         });
 
 
