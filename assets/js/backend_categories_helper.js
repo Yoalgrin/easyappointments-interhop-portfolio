@@ -82,6 +82,7 @@
          */
         $('#categories').on('click', '#add-category', function () {
             instance.resetForm();
+
             $('#categories .add-edit-delete-group').hide();
             $('#categories .save-cancel-group').show();
             $('#categories .record-details').find('input, select, textarea').prop('disabled', false);
@@ -200,6 +201,7 @@
                 $('#filter-categories .results').empty();
 
                 response.forEach(function (category) {
+
                     $('#filter-categories .results')
                         .append(this.getFilterHtml(category))
                         .append($('<hr/>'));
@@ -256,7 +258,7 @@
     /**
      * Delete category record.
      *
-     * @param Number} id Record ID to be deleted.
+     * @param {Number} id Record ID to be deleted.
      */
     CategoriesHelper.prototype.delete = function (id) {
         var url = GlobalVariables.baseUrl + '/index.php/backend_api/ajax_delete_service_category';

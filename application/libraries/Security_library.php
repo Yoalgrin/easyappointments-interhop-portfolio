@@ -46,6 +46,11 @@ class Security_library
                 "private_key_type" => OPENSSL_KEYTYPE_RSA
             ));
 
+            //Check if key generation was successful.
+            if ($keys === false) {
+                throw new Exception('Failed to generate OpenSSL key pair');
+            }
+
             // Retrieve the PEM form of the keys.
             $publicKeyPEM = openssl_pkey_get_details($keys)['key'];
             openssl_pkey_export($keys, $privateKeyPEM);

@@ -427,7 +427,7 @@ body legend {
 #calendar .fc-event {
     border: 1px solid #4790CA;
     background-color: #4790CA;
-    min-height: 12px; 
+    min-height: 12px;
 }
 
 #existing-customers-list {
@@ -640,6 +640,7 @@ body .form-horizontal .controls {
 
 #services-page h2 {
     color: #525252;
+
 }
 
 #services-page .nav {
@@ -664,9 +665,52 @@ body .form-horizontal .controls {
     margin-left: 10px;
 }
 
+#div-form-type {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+}
+
+#external-tool-type {
+    max-width: 80%;
+}
+
+#btn-type {
+    display: flex;
+}
+
+#external-tool-type {
+    margin-right: 3%;
+}
+
+#add-tool-type {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+#delete-tool-type {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+#service-externals-tools {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 5%;
+}
+
+.type-div-column {
+    flex: 1 0 20%;
+    display: flex;
+    flex-direction: column;
+    gap: 3%;
+    margin-bottom: 3%;
+}
+
 /* BACKEND WORKINGPLAN PAGE
    -------------------------------------------------------------------- */
-#workingplan-page #working-plan .breaks.table{
+#workingplan-page #working-plan .breaks.table {
     table-layout: fixed;
 }
 
@@ -675,7 +719,7 @@ body .form-horizontal .controls {
     padding: 4px 7px;
 }
 
-#workingplan-page #working-plan .specializeds.table{
+#workingplan-page #working-plan .specializeds.table {
     table-layout: fixed;
 }
 
@@ -683,6 +727,7 @@ body .form-horizontal .controls {
     margin-right: 5px;
     padding: 4px 7px;
 }
+
 #workingplan-page #working-plan .work-start,
 #workingplan-page #working-plan .work-end {
     max-width: 100px;
@@ -903,3 +948,4 @@ body .form-horizontal .controls {
 #settings-page #update-ea {
     margin-left: 12px;
 }
+

@@ -59,6 +59,7 @@ $resources = [
     'customers',
     'services',
     'categories',
+    'externals_tools',
     'admins',
     'providers',
     'secretaries'

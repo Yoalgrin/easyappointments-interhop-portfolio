@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#35A768">
 
-    <title><?= lang('page_title') . ' ' . $company_name ?></title>
+    <title><?= lang('page_title') . ' book.php' . $company_name ?></title>
 
     <link rel="stylesheet" type="text/css" href="<?= asset_url('assets/ext/bootstrap/css/bootstrap.min.css') ?>">
     <link rel="stylesheet" type="text/css" href="<?= asset_url('assets/ext/jquery-ui/jquery-ui.min.css') ?>">
@@ -20,14 +20,14 @@
     <script src="<?= asset_url('assets/ext/fontawesome/js/fontawesome.min.js') ?>"></script>
     <script src="<?= asset_url('assets/ext/fontawesome/js/solid.min.js') ?>"></script>
     <script>
-        function myFunction(elem){
+        function myFunction(elem) {
             elsuiv = elem.nextSibling;
-            if(elsuiv.nodeName == '#text'){
+            if (elsuiv.nodeName == '#text') {
                 elsuiv = elsuiv.nextSibling;
             }
-            if(elsuiv.style.display == 'none'){
+            if (elsuiv.style.display == 'none') {
                 elsuiv.style.display = 'block';
-            }else{
+            } else {
                 elsuiv.style.display = 'none';
             }
         }
@@ -119,86 +119,35 @@
                     <div class="row frame-content">
                         <div class="col">
 
-                            <div class="form-group">
-                                <label for="select-provider">
-                                    <strong><?= lang('provider') ?></strong>
-                                </label>
+                            <?php
 
-                                <select id="select-provider" class="form-control"></select>
-                            </div>
+                            if ($switch_display === 'service-first'):
+                                $switch_display_div = 'switch-display-div-reverse';
+                            else:
+                                $switch_display_div = '';
+                            endif
+                            ?>
 
-                            <div class="form-group">
-                                <label for="select-service">
-                                    <strong><?= lang('service') ?></strong>
-                                </label>
+                            <div id="<?php echo $switch_display_div; ?>" class="switch-display-div">
 
-                                <select id="select-service" class="form-control">
-                                    <?php
-                                    // Group services by category, only if there is at least one service with a parent category.
-                                    $has_category = FALSE;
-                                    foreach ($available_services as $service)
-                                    {
-                                        if ($service['category_id'] != NULL)
-                                        {
-                                            $has_category = TRUE;
-                                            break;
-                                        }
-                                    }
+                                <div class="form-group">
+                                    <label for="select-provider">
+                                        <strong><?= lang('provider') ?></strong>
+                                    </label>
 
-                                    if ($has_category)
-                                    {
-                                        $grouped_services = [];
+                                    <select id="select-provider" class="form-control"></select>
+                                </div>
 
-                                        foreach ($available_services as $service)
-                                        {
-                                            if ($service['category_id'] != NULL)
-                                            {
-                                                if ( ! isset($grouped_services[$service['category_name']]))
-                                                {
-                                                    $grouped_services[$service['category_name']] = [];
-                                                }
+                                <div class="form-group">
+                                    <label for="select-service">
+                                        <strong><?= lang('service') ?></strong>
+                                    </label>
 
-                                                $grouped_services[$service['category_name']][] = $service;
-                                            }
-                                        }
+                                    <select id="select-service" class="form-control">
+                                        <?php echo $services_options; ?>
+                                    </select>
+                                </div>
 
-                                        // We need the uncategorized services at the end of the list so we will use
-                                        // another iteration only for the uncategorized services.
-                                        $grouped_services['uncategorized'] = [];
-                                        foreach ($available_services as $service)
-                                        {
-                                            if ($service['category_id'] == NULL)
-                                            {
-                                                $grouped_services['uncategorized'][] = $service;
-                                            }
-                                        }
-
-                                        foreach ($grouped_services as $key => $group)
-                                        {
-                                            $group_label = ($key != 'uncategorized')
-                                                ? $group[0]['category_name'] : lang('uncategorized');
-
-                                            if (count($group) > 0)
-                                            {
-                                                echo '<optgroup label="' . $group_label . '">';
-                                                foreach ($group as $service)
-                                                {
-                                                    echo '<option value="' . $service['id'] . '">'
-                                                        . $service['name'] . '</option>';
-                                                }
-                                                echo '</optgroup>';
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        foreach ($available_services as $service)
-                                        {
-                                            echo '<option value="' . $service['id'] . '">' . $service['name'] . '</option>';
-                                        }
-                                    }
-                                    ?>
-                                </select>
                             </div>
 
                             <div id="service-description"></div>
@@ -283,11 +232,11 @@
                                 <label class="control-label" for="other-name">
                                     <?= lang('another_appointment') ?>
                                 </label>
-                                <input type="checkbox"  value="non" onclick="myFunction(this)">
-                                <div class="form-group" style="display:none;" >
-                                    <input type="text" id="other-first-name" class="form-control" placeholder="Prénom" />
+                                <input type="checkbox" value="non" onclick="myFunction(this)">
+                                <div class="form-group" style="display:none;">
+                                    <input type="text" id="other-first-name" class="form-control" placeholder="Prénom"/>
                                     <br>
-                                    <input type="text" id="other-last-name" class="form-control" placeholder="Nom" />
+                                    <input type="text" id="other-last-name" class="form-control" placeholder="Nom"/>
                                 </div>
                             </div>
 
@@ -337,29 +286,29 @@
                     </div>
                 </div>
 
-                    <div class="form-check mb-3">
-                        <input type="checkbox" class="required form-check-input" id="accept-to-terms-and-conditions">
-                        <label class="form-check-label" for="accept-to-terms-and-conditions">
-                            <?= strtr(lang('read_and_agree_to_terms_and_conditions'),
-                                [
-                                    '{$link}' => '<a href="#" data-toggle="modal" data-target="#terms-and-conditions-modal">',
-                                    '{/$link}' => '</a>'
-                                ])
-                            ?>
-                        </label>
-                    </div>
+                <div class="form-check mb-3">
+                    <input type="checkbox" class="required form-check-input" id="accept-to-terms-and-conditions">
+                    <label class="form-check-label" for="accept-to-terms-and-conditions">
+                        <?= strtr(lang('read_and_agree_to_terms_and_conditions'),
+                            [
+                                '{$link}' => '<a href="#" data-toggle="modal" data-target="#terms-and-conditions-modal">',
+                                '{/$link}' => '</a>'
+                            ])
+                        ?>
+                    </label>
+                </div>
 
-                    <div class="form-check mb-3">
-                        <input type="checkbox" class="required form-check-input" id="accept-to-privacy-policy">
-                        <label class="form-check-label" for="accept-to-privacy-policy">
-                            <?= strtr(lang('read_and_agree_to_privacy_policy'),
-                                [
-                                    '{$link}' => '<a href="#" data-toggle="modal" data-target="#privacy-policy-modal">',
-                                    '{/$link}' => '</a>'
-                                ])
-                            ?>
-                        </label>
-                    </div>
+                <div class="form-check mb-3">
+                    <input type="checkbox" class="required form-check-input" id="accept-to-privacy-policy">
+                    <label class="form-check-label" for="accept-to-privacy-policy">
+                        <?= strtr(lang('read_and_agree_to_privacy_policy'),
+                            [
+                                '{$link}' => '<a href="#" data-toggle="modal" data-target="#privacy-policy-modal">',
+                                '{/$link}' => '</a>'
+                            ])
+                        ?>
+                    </label>
+                </div>
 
                 <div class="command-buttons">
                     <button type="button" id="button-back-3" class="btn button-back btn-outline-secondary"
@@ -450,7 +399,7 @@
                     <form id="book-appointment-form" style="display:inline-block" method="post">
                         <button id="book-appointment-submit" type="button" class="btn btn-primary">
                             <i class="fas fa-check-square mr-2"></i>
-                            <?= ! $manage_mode ? lang('confirm') : lang('update') ?>
+                            <?= !$manage_mode ? lang('confirm') : lang('update') ?>
                         </button>
 
                         <input type="hidden" name="csrfToken"/>
@@ -469,6 +418,11 @@
 
                         <a href="https://easyappointments.org" target="_blank">Easy!Appointments</a>
                     </span>
+
+                    <span class="CGU">
+                        <a href=<?= site_url('CGU') ?>>Conditions générales/confidentialité</a>
+                    </span>
+
 
                     <span class="footer-options">
                         <span id="select-language" class="badge badge-secondary">
@@ -514,11 +468,13 @@
         providerData: <?= json_encode($provider_data) ?>,
         customerData: <?= json_encode($customer_data) ?>,
         displayAnyProvider: <?= json_encode($display_any_provider) ?>,
-        csrfToken: <?= json_encode($this->security->get_csrf_hash()) ?>
+        csrfToken: <?= json_encode($this->security->get_csrf_hash()) ?>,
+        switchDisplay: <?= json_encode($switch_display) ?>
     };
 
     var EALang = <?= json_encode($this->lang->language) ?>;
     var availableLanguages = <?= json_encode(config('available_languages')) ?>;
+
 </script>
 
 <script src="<?= asset_url('assets/js/general_functions.js') ?>"></script>

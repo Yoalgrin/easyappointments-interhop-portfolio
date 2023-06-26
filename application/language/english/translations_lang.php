@@ -369,5 +369,28 @@ $lang['key_externals_tools'] = 'Key externals tools';
 $lang['externals_tools'] = 'Externals Tools';
 $lang['link'] = 'Link';
 $lang['telemedicine'] = 'Telemedicine';
+$lang['switch_display'] = 'Switch display';
+$lang['provider_first'] = 'Provider first';
+$lang['service_first'] = 'Service first';
+$lang['switch_display_hint'] = 'Display all services for a provider, or all providers for a service';
+$lang['telemedicine_option'] = 'Enable telemedicine';
+$lang['telemedicine_option_hint'] = 'Enable external tools links generation for telemedicine and sharing docs';
+$lang['external_links_configuration'] = 'Telemedicine configuration';
+$lang['telemedicine_link'] = 'Telemedicine tool link';
+$lang['docs_sharing_link'] = 'Docs sharing tool link';
+$lang['no_external_tool'] = 'No External Tool';
+$lang['service_external_tool_saved'] = 'External tool successfully saved';
+$lang['service_external_tool_deleted'] = 'External tool successfully deleted';
+$lang['type'] = 'Type';
+$lang['add_type'] = 'Add a new type';
+$lang['new_type_saved'] = 'New external tool type saved';
+$lang['delete_type'] = 'Delete this type ?';
+$lang['type_deleted'] = 'Type deleted successfully';
+$lang['delete_external_tool'] = 'Delete external tool ?';
+$lang['no_tool_type'] = 'No external tool type';
+$lang['reset_all_passwords'] = 'Reset all user passwords';
+$lang['CGU'] = 'Legal notice';
+$lang['terms_and_conditions'] = 'Terms and conditions';
+$lang['reset_all_passwords'] = 'Reset all passewords';
+//End
 
-// End

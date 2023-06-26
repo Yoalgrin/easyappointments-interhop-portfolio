@@ -102,6 +102,10 @@
                 .prop('disabled', false);
             $('#filter-services button').prop('disabled', true);
             $('#filter-services .results').css('color', '#AAA');
+            if ($('#service-category').find('option[value="null"]').length === 0) {
+                $('#service-category').append(new Option('- ' + EALang.no_category + ' -', null)).val('null');
+            }
+            $('#service-externals-tools input:checkbox').prop('disabled', false);
 
             // Default values
             $('#service-name').val('Service');
@@ -138,7 +142,8 @@
                 description: $('#service-description').val(),
                 location: $('#service-location').val(),
                 availabilities_type: $('#service-availabilities-type').val(),
-                attendants_number: $('#service-attendants-number').val()
+                attendants_number: $('#service-attendants-number').val(),
+                externals_tools: $('#service-externals-tools').val()
             };
 
             if ($('#service-category').val() !== 'null') {
@@ -146,6 +151,13 @@
             } else {
                 service.id_service_categories = null;
             }
+
+            service.externals_tools = [];
+            $('#service-externals-tools input:checkbox').each(function (index, checkbox) {
+                if ($(checkbox).prop('checked')) {
+                    service.externals_tools.push($(checkbox).attr('data-id'));
+                }
+            });
 
             if ($('#service-id').val() !== '') {
                 service.id = $('#service-id').val();
@@ -169,6 +181,8 @@
                 .prop('disabled', false);
             $('#filter-services button').prop('disabled', true);
             $('#filter-services .results').css('color', '#AAA');
+            $('#service-category').append(new Option('- ' + EALang.no_category + ' -', null)).val('null');
+            $('#service-externals-tools input:checkbox').prop('disabled', false);
         });
 
         /**
@@ -319,6 +333,7 @@
 
         $('#services .record-details .has-error').removeClass('has-error');
         $('#services .record-details .form-message').hide();
+        $('#service-externals-tools input:checkbox').prop('checked', false)
     };
 
     /**
@@ -327,6 +342,7 @@
      * @param {Object} service Contains the service record data.
      */
     ServicesHelper.prototype.display = function (service) {
+
         $('#service-id').val(service.id);
         $('#service-name').val(service.name);
         $('#service-duration').val(service.duration);
@@ -336,6 +352,11 @@
         $('#service-location').val(service.location);
         $('#service-availabilities-type').val(service.availabilities_type);
         $('#service-attendants-number').val(service.attendants_number);
+
+        $('#service-externals-tools input:checkbox').prop('checked', false)
+        service.externals_tools.forEach(function (toolId) {
+            $('#service-externals-tools').find('input[data-id="' + toolId + '"]').prop('checked', true);
+        });
 
         var categoryId = (service.id_service_categories !== null) ? service.id_service_categories : 'null';
         $('#service-category').val(categoryId);

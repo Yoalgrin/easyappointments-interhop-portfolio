@@ -1463,6 +1463,7 @@ window.BackendCalendarDefaultView = window.BackendCalendarDefaultView || {};
 
 
     exports.initialize = function () {
+
         // Dynamic date formats.
         var columnFormat = {};
 

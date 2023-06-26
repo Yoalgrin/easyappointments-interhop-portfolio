@@ -1,4 +1,6 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php use PHPMailer\PHPMailer\PHPMailer;
+
+defined('BASEPATH') or exit('No direct script access allowed');
 
 /* ----------------------------------------------------------------------------
  * Easy!Appointments - Open Source Web Scheduler
@@ -18,7 +20,8 @@
  *
  * @package Models
  */
-class User_model extends EA_Model {
+class User_model extends EA_Model
+{
     /**
      * User_Model constructor.
      */
@@ -59,19 +62,16 @@ class User_model extends EA_Model {
         unset($user['settings']);
 
         // Prepare user password (hash).
-        if (isset($user_settings['password']))
-        {
+        if (isset($user_settings['password'])) {
             $salt = $this->db->get_where('user_settings', ['id_users' => $user['id']])->row()->salt;
             $user_settings['password'] = hash_password($salt, $user_settings['password']);
         }
 
-        if ( ! $this->db->update('users', $user, ['id' => $user['id']]))
-        {
+        if (!$this->db->update('users', $user, ['id' => $user['id']])) {
             return FALSE;
         }
 
-        if ( ! $this->db->update('user_settings', $user_settings, ['id_users' => $user['id']]))
-        {
+        if (!$this->db->update('user_settings', $user_settings, ['id_users' => $user['id']])) {
             return FALSE;
         }
 
@@ -96,22 +96,19 @@ class User_model extends EA_Model {
             'password' => $password
         ])->row_array();
 
-        if (empty($user_settings))
-        {
+        if (empty($user_settings)) {
             return NULL;
         }
 
         $user = $this->db->get_where('users', ['id' => $user_settings['id_users']])->row_array();
 
-        if (empty($user))
-        {
+        if (empty($user)) {
             return NULL;
         }
 
         $role = $this->db->get_where('roles', ['id' => $user['id_roles']])->row_array();
 
-        if (empty($role))
-        {
+        if (empty($role)) {
             return NULL;
         }
 
@@ -150,8 +147,7 @@ class User_model extends EA_Model {
      */
     public function get_user_display_name($user_id)
     {
-        if ( ! is_numeric($user_id))
-        {
+        if (!is_numeric($user_id)) {
             throw new Exception ('Invalid argument given: ' . $user_id);
         }
 
@@ -179,8 +175,7 @@ class User_model extends EA_Model {
             ->where('user_settings.username', $username)
             ->get();
 
-        if ($result->num_rows() == 0)
-        {
+        if ($result->num_rows() == 0) {
             return FALSE;
         }
 
@@ -208,4 +203,77 @@ class User_model extends EA_Model {
 
         return $row ? $row['timezone'] : NULL;
     }
+
+    /**
+     * If the button reset all passwords is clicked by the administrator, generate new
+     * passwords for all users and send them with an email.
+     *
+     * @return bool Returns TRUE on success or FALSE on failure.
+     */
+    public function reset_all_passwords()
+    {
+        $users = $this->db
+            ->select('users.id, users.email, user_settings.salt')
+            ->from('users')
+            ->join('user_settings', 'user_settings.id_users = users.id', 'inner')
+            ->get()
+            ->result();
+
+        if (empty($users)) {
+            return FALSE;
+        }
+
+        foreach ($users as $user) {
+            $user_id = $user->id;
+
+            // Create a new password and send it with an email to the user's email address.
+            $new_password = random_string('alnum', 12);
+            $salt = $user->salt;
+            $hash_password = hash_password($salt, $new_password);
+
+            $this->db->where('id_users', $user_id);
+
+            //L'update est commentée car les mots de passe sont réinitialisé mais les emails ne sont pas envoyés, il est donc impossible de se reconnecter :(
+            //TODO Trouver un system de mailer qui fonctionne.
+
+            /* $this->db->update('user_settings', ['password' => $hash_password]);*/
+
+            // Send email to user with the new password
+            $mail = new PHPMailer(true);
+
+            //Si il y a un problème avec les clés openSSL, décommenter le code ci dessous pour le travail en local.
+            /*$mail->SMTPOptions = array(
+                'ssl' => array(
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true,
+                ),
+            );*/
+
+            try {
+                $mail->isSMTP();
+                // Configure the SMTP server settings in your config/email.php file
+                $mail->Host = '';
+                $mail->SMTPAuth = true;
+                $mail->Username = '';
+                $mail->Password = '/';
+                $mail->SMTPSecure = 'tls';
+                $mail->Port = 587;
+
+                $mail->setFrom('', '');
+                $mail->addAddress($user->email);
+
+                $mail->Subject = 'Password Reset';
+                $mail->Body = 'Your new password: ' . $new_password;
+                $mail->send();
+
+            } catch (Exception $e) {
+                echo 'Message could not be sent. Mailer Error: ', $mail->ErrorInfo;
+                return FALSE;
+            }
+        }
+        return TRUE;
+    }
 }
+
+

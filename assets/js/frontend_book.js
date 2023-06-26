@@ -175,16 +175,8 @@ window.FrontendBook = window.FrontendBook || {};
                     .val(selectedProviderId)
                     .trigger('change');
             }
-
-            //on init : display all available providers
-            GlobalVariables.availableProviders.forEach(function (provider) {
-                $('#select-provider').append(new Option(provider.first_name + ' ' + provider.last_name, provider.id));
-            })
-            // Add the "Any Provider" entry.
-            if ($('#select-provider option').length > 1 && GlobalVariables.displayAnyProvider === '1') {
-                $('#select-provider').prepend(new Option('- ' + EALang.any_provider + ' -', 'any-provider', true, true));
-            }
         }
+
     };
 
     /**
@@ -212,27 +204,60 @@ window.FrontendBook = window.FrontendBook || {};
          * Whenever the provider changes the available appointment date - time periods must be updated.
          */
         $('#select-provider').on('change', function () {
+
             FrontendBookApi.getUnavailableDates($(this).val(), $('#select-service').val(),
                 $('#select-date').datepicker('getDate').toString('yyyy-MM-dd'));
             FrontendBook.updateConfirmFrame();
 
-            //when a provider is selected, display all of its available services
+
             var providerId = $('#select-provider').val();
             $('#select-service').empty()
 
-            //also handle the 'any provider available' option.
-            if(providerId !== 'any-provider'){
-                var provider = GlobalVariables.availableProviders.find(x => x.id === providerId);
-                GlobalVariables.availableServices.forEach(function (service){
-                    // If the current provider can perform the requested service, add him to the list box.
-                    if (provider.services.includes(service.id) === true) {
-                        $('#select-service').append(new Option(service.name, service.id));
+            var provider = GlobalVariables.availableProviders.find(x => x.id === providerId);
+
+            //Group services by category
+            let groupedServices = {}
+            GlobalVariables.availableServices.forEach(function (service) {
+                let categoryId = service.category_id || 'uncategorized';
+                if (!groupedServices[categoryId]) {
+                    groupedServices[categoryId] = [];
+                }
+                groupedServices[categoryId].push(service);
+            });
+
+            for (let categoryId in groupedServices) {
+                if (groupedServices.hasOwnProperty(categoryId)) {
+                    let services = groupedServices[categoryId];
+                    let categoryLabel = (categoryId !== 'uncategorized') ? services[0].category_name : EALang.uncategorized;
+
+                    //Display category label only if the provider has some service in the category
+                    if (services.some(service => provider.services.includes(service.id))){
+                        $('#select-service').append('<optgroup label="' + categoryLabel + '">');
                     }
-                })
-            }else{
-                GlobalVariables.availableServices.forEach(function (service){
-                    $('#select-service').append(new Option(service.name, service.id));
-                })
+
+                    if (GlobalVariables.switchDisplay === 'provider-first') {
+
+                        if (services.length > 0) {
+                            services.forEach(function (service) {
+                                //Display only the services of the chosen provider
+                                if (provider.services.includes(service.id) === true) {
+                                    $('#select-service').append(new Option(service.name, service.id));
+                                }
+                            });
+                            $('#select-service').append('</optgroup>');
+                        }
+
+                    } else if (GlobalVariables.switchDisplay === 'service-first') {
+
+                        if (services.length > 0) {
+                            services.forEach(function (service) {
+                                $('#select-service').append(new Option(service.name, service.id));
+                            });
+                            $('#select-service').append('</optgroup>');
+                        }
+
+                    }
+                }
             }
         });
 
@@ -243,29 +268,35 @@ window.FrontendBook = window.FrontendBook || {};
          * become visible.
          */
         $('#select-service').on('change', function () {
-            var serviceId = $('#select-service').val();
-
-            /*$('#select-provider').empty();
-
-            GlobalVariables.availableProviders.forEach(function (provider) {
-                // If the current provider is able to provide the selected service, add him to the list box.
-                var canServeService = provider.services.filter(function (providerServiceId) {
-                    return Number(providerServiceId) === Number(serviceId);
-                }).length > 0;
-
-                if (canServeService) {
-                    $('#select-provider').append(new Option(provider.first_name + ' ' + provider.last_name, provider.id));
-                }
-            });
-
-            // Add the "Any Provider" entry.
-            if ($('#select-provider option').length > 1 && GlobalVariables.displayAnyProvider === '1') {
-                $('#select-provider').prepend(new Option('- ' + EALang.any_provider + ' -', 'any-provider', true, true));
-            }*/
 
             FrontendBookApi.getUnavailableDates($('#select-provider').val(), $(this).val(),
                 $('#select-date').datepicker('getDate').toString('yyyy-MM-dd'));
             FrontendBook.updateConfirmFrame();
+
+            let serviceId = $('#select-service').val();
+            $('#select-provider').empty();
+
+            let service = GlobalVariables.availableServices.find(x => x.id === serviceId);
+
+            if (GlobalVariables.switchDisplay === 'service-first') {
+
+                GlobalVariables.availableProviders.forEach(function (provider) {
+                    if (service.providers.includes(provider.id) === true) {
+                        $('#select-provider').append(new Option(provider.first_name + ' ' + provider.last_name, provider.id))
+                    }
+                })
+
+                //Add the "Any Provider" entry
+                if ($('#select-provider option').length > 1 && GlobalVariables.displayAnyProvider === '1') {
+                    $('#select-provider').prepend(new Option('- ' + EALang.any_provider + ' -', 'any-provider', true, true));
+                }
+
+            } else if (GlobalVariables.switchDisplay === 'provider-first') {
+                GlobalVariables.availableProviders.forEach(function (provider) {
+                    $('#select-provider').append(new Option(provider.first_name + ' ' + provider.last_name, provider.id))
+                })
+            }
+
             updateServiceDescription(serviceId);
         });
 
@@ -497,7 +528,7 @@ window.FrontendBook = window.FrontendBook || {};
             // Validate required fields.
             var missingRequiredField = false;
 
-            $('#wizard-frame-'+ activeTabIndex + ' .required').each(function (index, requiredField) {
+            $('#wizard-frame-' + activeTabIndex + ' .required').each(function (index, requiredField) {
                 if (!$(requiredField).val()) {
                     $(requiredField).parents('.form-group').addClass('has-error');
                     missingRequiredField = true;
@@ -834,4 +865,5 @@ window.FrontendBook = window.FrontendBook || {};
         }
     }
 
-})(window.FrontendBook);
+})
+(window.FrontendBook);

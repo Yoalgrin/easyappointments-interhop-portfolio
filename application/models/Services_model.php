@@ -38,13 +38,24 @@ class Services_model extends EA_Model {
     {
         $this->validate($service);
 
+        //Extract service external tools if there is any.
+        $externals_tools = $service['externals_tools'] ?? [];
+        unset($service['externals_tools']);
+
         if ( ! isset($service['id']))
         {
             $service['id'] = $this->insert($service);
+            $service_id = $this->db->insert_id();
         }
         else
         {
             $this->update($service);
+            $service_id = $service['id'];
+        }
+
+        if ( ! empty($externals_tools)) {
+            //Insert service externals tools in dedicated table.
+            $this->save_service_externals_tools($externals_tools, $service_id );
         }
 
         return (int)$service['id'];
@@ -80,6 +91,17 @@ class Services_model extends EA_Model {
             if ($num_rows == 0)
             {
                 throw new Exception('Provided service category id does not exist in database.');
+            }
+        }
+
+        //Check if service external tools id are valid if there is any
+        if ( ! empty($service['externals_tools']))
+        {
+            foreach ($service['externals_tools'] as $external_tool){
+                $num_rows = $this->db->get_where('externals_tools',['id' => intval($external_tool)])->num_rows();
+                if ($num_rows == 0) {
+                    throw new Exception('Provided external tool id does not exist in database.');
+                }
             }
         }
 
@@ -145,6 +167,7 @@ class Services_model extends EA_Model {
         {
             throw new Exception('Could not insert service record.');
         }
+
         return (int)$this->db->insert_id();
     }
 
@@ -165,7 +188,7 @@ class Services_model extends EA_Model {
     }
 
     /**
-     * Checks whether an service record already exists in the database.
+     * Checks whether a service record already exists in the database.
      *
      * @param array $service Contains the service data. Name, duration and price values are mandatory in order to
      * perform the checks.
@@ -273,8 +296,14 @@ class Services_model extends EA_Model {
         {
             throw new Exception('$service_id argument is not an numeric (value: "' . $service_id . '")');
         }
-        return $this->db->get_where('services', ['id' => $service_id])->row_array();
+
+        $service = $this->db->get_where('services', ['id' => $service_id])->row_array();
+
+        $this->get_service_external_tools($service);
+
+        return $service;
     }
+
 
     /**
      * Get a specific field value from the database.
@@ -344,7 +373,13 @@ class Services_model extends EA_Model {
             $this->db->order_by($order_by);
         }
 
-        return $this->db->get('services', $limit, $offset)->result_array();
+        $services = $this->db->get('services', $limit, $offset)->result_array();
+
+        foreach ($services as &$service) {
+            $this->get_service_external_tools($service);
+        }
+
+        return $services;
     }
 
     /**
@@ -356,18 +391,39 @@ class Services_model extends EA_Model {
     {
         $this->db->distinct();
 
-        $this->db->select('services.*, service_categories.name AS category_name, '
-                . 'service_categories.id AS category_id')
+        $this->db->select('services.*, service_categories.name AS category_name, service_categories.id AS category_id')
             ->from('services')
             ->join('services_providers',
-                'services_providers.id_services = services.id', 'inner')
+                'services_providers.id_services = services.id', 'left')
             ->join('service_categories',
-                'service_categories.id = services.id_service_categories', 'left')
+                'service_categories.id = services.id_service_categories', 'inner')
             ->order_by('name ASC');
 
-        if ($where) $this->db->where($where);
+        if ($where) {
+            $this->db->where($where);
+        }
 
-        return $this->db->get()->result_array();
+        $services = $this->db->get()->result_array();
+
+        $uncategorized_services = $this->db->get_where('services', ['id_service_categories' => NULL])->result_array();
+
+        $services = array_merge($services, $uncategorized_services);
+
+        //Include all providers and external tools for each service.
+        foreach ($services as &$service) {
+
+            $providers = $this->db->get_where('services_providers', ['id_services' => $service['id']])->result_array();
+
+            $service['providers'] = [];
+            foreach ($providers as $provider) {
+                $service['providers'][] = $provider['id_users'];
+            }
+
+            $this->get_service_external_tools($service);
+
+        }
+
+        return $services;
     }
 
     /**
@@ -412,6 +468,7 @@ class Services_model extends EA_Model {
      */
     public function validate_category($category)
     {
+
         try
         {
             // Required Fields
@@ -511,5 +568,303 @@ class Services_model extends EA_Model {
         }
 
         return $this->db->get('service_categories', $limit, $offset)->result_array();
+    }
+
+
+    /**
+     * Get a service external tools from the externals_tools_services table.
+     *
+     * Use this in services get methods.
+     *
+     * @param array $service The service to be returned.
+     */
+    protected function get_service_external_tools(&$service)
+    {
+        $externals_tools = $this->db->get_where('ea_externals_tools_services', ['id_service' => $service['id']])->result_array();
+
+        foreach ($externals_tools as $external_tool) {
+            $service['externals_tools'][] = $external_tool['id_external_tool'];
+        }
+        return $service;
+    }
+
+    /**
+     * Add (insert or update) an external tool record into database.
+     *
+     * @param array $external_tool Contains the external tool data.
+     *
+     * @return int Returns the record ID.
+     *
+     * @throws Exception If external tool data are invalid.
+     */
+    public function add_external_tool($external_tool)
+    {
+        if ( ! $this->validate_external_tool($external_tool))
+        {
+            throw new Exception('External tool data are invalid.');
+        }
+
+        if ( ! isset($external_tool['id']))
+        {
+            $this->db->insert('externals_tools', $external_tool);
+            $external_tool['id'] = $this->db->insert_id();
+        }
+        else
+        {
+            $this->db->where('id', $external_tool['id']);
+            $this->db->update('externals_tools', $external_tool);
+        }
+
+
+        return (int)$external_tool['id'];
+    }
+
+    /**
+     * Validate an external tool record data. This method must be used before adding
+     * an external tool record into database in order to secure the record integrity.
+     *
+     * @param array $external_tool Contains the external tool data.
+     *
+     * @return bool Returns the validation result.
+     *
+     * @throws Exception If required fields are missing.
+     */
+    public function validate_external_tool($external_tool)
+    {
+        try
+        {
+            // Required Fields
+            if ( ! isset($external_tool['name']))
+            {
+                throw new Exception('Not all required fields where provided ');
+            }
+
+            if ($external_tool['name'] == '' || $external_tool['name'] == NULL)
+            {
+                throw new Exception('Required fields cannot be empty or null ($external_tool: '
+                    . print_r($external_tool, TRUE) . ')');
+            }
+
+            return TRUE;
+        }
+        catch (Exception $exception)
+        {
+            return FALSE;
+        }
+    }
+
+    /**
+     * Delete an external tool record from the database.
+     *
+     * @param int $external_tool_id Record id to be deleted.
+     *
+     * @return bool Returns the delete operation result.
+     *
+     * @throws Exception if external tool record was not found.
+     */
+    public function delete_external_tool($external_tool_id)
+    {
+
+
+        if ( ! is_numeric($external_tool_id))
+        {
+            throw new Exception('Invalid argument given for $external_tool_id: ' . $external_tool_id);
+        }
+
+        $num_rows = $this->db->get_where('externals_tools', ['id' => $external_tool_id])
+            ->num_rows();
+        if ($num_rows == 0)
+        {
+            throw new Exception('External tool record not found in database.');
+        }
+
+        $this->db->where('id', $external_tool_id);
+        return $this->db->delete('externals_tools');
+    }
+
+    /**
+     * Get an external tool record data.
+     *
+     * @param int $external_tool_id Record id to be retrieved.
+     *
+     * @return array Returns the record data from the database.
+     *
+     * @throws Exception If $category_id argument is invalid.
+     * @throws Exception If external tool record does not exist.
+     */
+    public function get_external_tool($external_tool_id)
+    {
+        if ( ! is_numeric($external_tool_id))
+        {
+            throw new Exception('Invalid argument type given $external_tool_id: ' . $external_tool_id);
+        }
+
+        $result = $this->db->get_where('externals_tools', ['id' => $external_tool_id]);
+
+        if ($result->num_rows() == 0)
+        {
+            throw new Exception('External tool record does not exist.');
+        }
+
+        return $result->row_array();
+    }
+
+    /**
+     * Get all external tool records from database.
+     *
+     * @param mixed $where
+     * @param int|null $limit
+     * @param int|null $offset
+     * @param mixed $order_by
+     *
+     * @return array Returns an array that contains all the external tool records.
+     */
+    public function get_all_external_tools($where = NULL, $limit = NULL, $offset = NULL, $order_by = 'name ASC')
+    {
+        if ($where !== NULL)
+        {
+            $this->db->where($where);
+        }
+
+        if ($order_by !== NULL)
+        {
+            $this->db->order_by($order_by);
+        }
+
+        return $this->db->get('externals_tools', $limit, $offset)->result_array();
+    }
+
+    /**
+     * Save the service external tools in the database (use on both insert and update operation).
+     *
+     * @param array $externals_tools Contains the external tools ids that the selected service can use.
+     * @param int $service_id The selected service record id.
+     *
+     * @throws Exception When the $externals_tools argument type is not array.
+     * @throws Exception When the $service_id argument type is not int.
+     */
+    protected function save_service_externals_tools($externals_tools, $service_id)
+    {
+        // Validate method arguments.
+        if ( ! is_array($externals_tools))
+        {
+            throw new Exception('Invalid argument type $externals_tools: ' . $externals_tools);
+        }
+
+        if ( ! is_numeric($service_id))
+        {
+            throw new Exception('Invalid argument type $service_id: ' . $service_id);
+        }
+
+        // Save service external tools in the database (delete old records and add new).
+        $this->db->delete('externals_tools_services', ['id_service' => $service_id]);
+
+        foreach ($externals_tools as $external_tool_id)
+        {
+            $external_tool_service = [
+                'id_service' => $service_id,
+                'id_external_tool' => $external_tool_id
+            ];
+            $this->db->insert('externals_tools_services', $external_tool_service);
+        }
+    }
+
+
+    /**
+     * Get all external tool types from database.
+     *
+     * @return array Return an array that contains all the types.
+     */
+    public function get_external_tool_types()
+    {
+        $this->db->order_by('name ASC');
+        return $this->db->get('types')->result_array();
+    }
+
+
+    /**
+     * Validate an external tool type record data. This method must be used before adding
+     * a tool type record into database in order to secure the record integrity.
+     *
+     * @param array $tool_type Contains the tool type data.
+     *
+     * @return bool Returns the validation result.
+     *
+     * @throws Exception If required fields are missing.
+     */
+    public function validate_tool_type($tool_type)
+    {
+        try
+        {
+
+
+            // Required Fields
+            if ( ! isset($tool_type['name']))
+            {
+                throw new Exception('Not all required fields where provided ');
+            }
+
+            if ($tool_type['name'] == '' || $tool_type['name'] == NULL)
+            {
+                throw new Exception('Required fields cannot be empty or null ($tool_type: '
+                    . print_r($tool_type, TRUE) . ')');
+            }
+
+            return TRUE;
+        }
+        catch (Exception $exception)
+        {
+            return FALSE;
+        }
+    }
+
+    /**
+     * Insert an external tool type record into database.
+     *
+     * @param array $tool_type Contains the tool type data.
+     *
+     * @return int Returns the record ID.
+     *
+     * @throws Exception If tool type data are invalid.
+     */
+    public function add_tool_type($tool_type)
+    {
+        if ( ! $this->validate_tool_type($tool_type))
+        {
+            throw new Exception('External tool type data are invalid.');
+        }
+
+
+        $this->db->insert('types', $tool_type);
+        $tool_type['id'] = $this->db->insert_id();
+
+        return (int)$tool_type['id'];
+    }
+
+    /**
+     * Delete an external tool type record from the database.
+     *
+     * @param int $tool_type_id Record id to be deleted.
+     *
+     * @return bool Returns the delete operation result.
+     *
+     * @throws Exception if tool type record was not found.
+     */
+    public function delete_tool_type($tool_type_id)
+    {
+        if ( ! is_numeric($tool_type_id))
+        {
+            throw new Exception('Invalid argument given for $external_tool_id: ' . $tool_type_id);
+        }
+
+        $num_rows = $this->db->get_where('types', ['id' => $tool_type_id])
+            ->num_rows();
+        if ($num_rows == 0)
+        {
+            throw new Exception('External tool record not found in database.');
+        }
+
+        $this->db->where('id', $tool_type_id);
+        return $this->db->delete('types');
     }
 }

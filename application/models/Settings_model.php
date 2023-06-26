@@ -136,6 +136,8 @@ class Settings_model extends EA_Model {
      */
     public function save_settings($settings)
     {
+
+
         if ( ! is_array($settings))
         {
             throw new Exception('$settings argument is invalid: ' . print_r($settings, TRUE));
@@ -143,6 +145,9 @@ class Settings_model extends EA_Model {
 
         foreach ($settings as $setting)
         {
+
+            error_log("Ma variable : " . var_export($setting, TRUE));
+
             $this->db->where('name', $setting['name']);
             if ( ! $this->db->update('settings', ['value' => xss_clean($setting['value'])]))
             {
@@ -153,6 +158,7 @@ class Settings_model extends EA_Model {
 
         return TRUE;
     }
+
 
     /**
      * Returns all the system settings at once.

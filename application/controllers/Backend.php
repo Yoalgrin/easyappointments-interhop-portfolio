@@ -81,6 +81,10 @@ class Backend extends EA_Controller {
         $view['calendar_view'] = ! empty($calendar_view_query_param) ? $calendar_view_query_param : $user['settings']['calendar_view'];
         $view['timezones'] = $this->timezones->to_array();
         $view['categories'] = $this->services_model->get_all_categories();
+        $view['externals_tools'] = $this->services_model->get_all_external_tools();
+        $view['externals_tools_types'] = $this->services_model->get_external_tool_types();
+
+
         $this->set_user_data($view);
 
         if ($this->session->userdata('role_slug') === DB_SLUG_SECRETARY)
@@ -254,6 +258,7 @@ class Backend extends EA_Controller {
         $view['first_weekday'] = $this->settings_model->get_setting('first_weekday');
         $view['providers'] = $this->providers_model->get_batch(($this->session->userdata('role_slug') == DB_SLUG_PROVIDER) ? 'id = ' . $this->session->userdata('user_id') : null);
         $view['working_plan'] = $this->settings_model->get_setting('company_working_plan');
+        $view['externals_tools'] = $this->services_model->get_all_external_tools();
         $view['working_plan_exceptions'] = '{}';
 
         $this->set_user_data($view);
@@ -273,6 +278,7 @@ class Backend extends EA_Controller {
      */
     public function services()
     {
+
         $this->session->set_userdata('dest_url', site_url('backend/services'));
 
         if ( ! $this->has_privileges(PRIV_SERVICES))
@@ -291,11 +297,14 @@ class Backend extends EA_Controller {
         $view['services'] = $this->services_model->get_batch();
         $view['categories'] = $this->services_model->get_all_categories();
         $view['timezones'] = $this->timezones->to_array();
+        $view['externals_tools'] = $this->services_model->get_all_external_tools();
+        $view['externals_tools_types'] = $this->services_model->get_external_tool_types();
         $this->set_user_data($view);
 
         $this->load->view('backend/header', $view);
         $this->load->view('backend/services', $view);
         $this->load->view('backend/footer', $view);
+
     }
 
     /**
@@ -326,6 +335,9 @@ class Backend extends EA_Controller {
         $view['working_plan'] = $this->settings_model->get_setting('company_working_plan');
         $view['timezones'] = $this->timezones->to_array();
         $view['public_key'] = $this->security_library->getPublicKey();
+        $view['externals_tools'] = $this->services_model->get_all_external_tools();
+        $view['externals_tools_types'] = $this->services_model->get_external_tool_types();
+
 
         $view['working_plan_exceptions'] = '{}';
         // send to view to enable/disable the default timezone option
