@@ -36,9 +36,8 @@
 ## About
 
 **Easy!Appointments** is a highly customizable web application that allows customers to book appointments with you 
-via a sophisticated web interface. 
-Unlike the original version of easyappointments it is not possible to synchronize with Google Calendar.
-It is an open source project that you can download and install **even for commercial use**. 
+via a sophisticated web interface. Moreover, it provides the ability to sync your data with Google Calendar so you can 
+use them with other services. It is an open source project that you can download and install **even for commercial use**. 
 Easy!Appointments will run smoothly with your existing website as it can be installed in a single folder of the 
 server and of course share an existing database.
 
@@ -48,10 +47,8 @@ The application is designed to be flexible enough so that it can handle any ente
 
 * Customers and appointments management.
 * Services and providers organization.
-* Validation of the appointment with a code received by mail
-* Possibility to make an appointment for a third person
-* Limiting the number of customers per provider
 * Working plan and booking rules.
+* Google Calendar synchronization.
 * Email notifications system.
 * Self hosted installation.
 * Translated user interface.
@@ -63,7 +60,7 @@ To clone and run this application, you'll need [Git](https://git-scm.com), [Node
 
 ```bash
 # Clone this repository
-$ git clone https://framagit.org/interhop/easyappointments
+$ git clone https://github.com/alextselegidis/easyappointments.git
 
 # Go into the repository
 $ cd easyappointments
@@ -83,12 +80,11 @@ You can build the files by running `npm run build`. This command will bundle eve
 
 You will need to perform the following steps to install the application on your server:
 
-* Make sure that your server has Apache/Nginx, PHP and MySQL installed.
+* Make sure that your server has Apache/Nginx, PHP (8.2+) and MySQL installed.
 * Create a new database (or use an existing one).
 * Copy the "easyappointments" source folder on your server.
 * Make sure that the "storage" directory is writable.
 * Rename the "config-sample.php" file to "config.php" and update its contents based on your environment.
-* Rename the "application/config/email-sample.php" file to "application/config/email.php" and update its contents based on your email credentials.
 * Open the browser on the Easy!Appointments URL and follow the installation guide.
 
 That's it! You can now use Easy!Appointments at your will.
@@ -105,6 +101,11 @@ Code Licensed Under [GPL v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html) | C
 
 ---
 
-This software is mainly developed by Alex Tselegidis. Thanks to him.
+Website [alextselegidis.com](https://alextselegidis.com) &nbsp;&middot;&nbsp;
+GitHub [alextselegidis](https://github.com/alextselegidis) &nbsp;&middot;&nbsp;
+Twitter [@alextselegidis](https://twitter.com/AlexTselegidis)
 
-InterHop adapts EasyAppointments and develops specific functionalities for health care.
+###### More Projects On Github
+###### ⇾ [Plainpad &middot; Self Hosted Note Taking App](https://github.com/alextselegidis/plainpad)
+###### ⇾ [Questionful &middot; Web Questionnaires Made Easy](https://github.com/alextselegidis/questionful)
+###### ⇾ [Integravy &middot; Service Orchestration At Your Fingertips](https://github.com/alextselegidis/integravy)
