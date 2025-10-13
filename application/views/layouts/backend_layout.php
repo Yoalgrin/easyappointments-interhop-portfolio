@@ -22,10 +22,19 @@
           href="<?= asset_url('assets/css/themes/' . setting('theme', 'default') . '.css') ?>">
     <link rel="stylesheet" type="text/css" href="<?= asset_url('assets/css/general.css') ?>">
     <link rel="stylesheet" type="text/css" href="<?= asset_url('assets/css/layouts/backend_layout.css') ?>">
+    <?php
+    $href = asset_url('assets/css/interhop-overrides.min.css');
+    $href .= (str_contains($href, '?') ? '&' : '?') . 'v=' . time();
+    ?>
+    <link rel="stylesheet" type="text/css" href="<?= $href ?>">
+
+
 
     <?php component('company_color_style', ['company_color' => setting('company_color')]); ?>
 
     <?php slot('styles'); ?>
+
+
 </head>
 <body class="d-flex flex-column h-100">
 
