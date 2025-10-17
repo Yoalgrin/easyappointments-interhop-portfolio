@@ -443,10 +443,39 @@ class Booking extends EA_Controller
             $appointment['status'] = $appointment_status_options[0] ?? null;
             $appointment['end_datetime'] = $this->appointments_model->calculate_end_datetime($appointment);
 
-            $this->appointments_model->only($appointment, $this->allowed_appointment_fields);
+            // Anti-spam: si flag ON, passer en brouillon
+            $require_email_confirm = (getenv('EA_REQUIRE_EMAIL_CONFIRMATION') === 'true');
+            if ($require_email_confirm) {
+                $appointment['status'] = 'waiting_email';
+            }
 
+            $this->appointments_model->only($appointment, $this->allowed_appointment_fields);
             $appointment_id = $this->appointments_model->save($appointment);
-            $appointment = $this->appointments_model->find($appointment_id);
+            $appointment    = $this->appointments_model->find($appointment_id);
+            if ($require_email_confirm) {
+                $ttlSeconds = (int)(getenv('EA_CONFIRM_TTL_SECONDS') ?: 300);
+                $token      = bin2hex(random_bytes(32));
+                $expiresAt  = (new DateTime("+{$ttlSeconds} seconds"))->format('Y-m-d H:i:s');
+
+                $this->db->insert('appointment_email_confirmations', [
+                    'appointment_id' => (int)$appointment['id'],
+                    'email'          => $customer['email'] ?? '',
+                    'token'          => $token,
+                    'status'         => 'pending',
+                    'ip_created'     => inet_pton($this->input->ip_address()),
+                    'user_agent'     => substr($this->input->server('HTTP_USER_AGENT') ?? '', 0, 255),
+                    'expires_at'     => $expiresAt,
+                ]);
+
+                $this->_sendConfirmationEmail($customer['email'] ?? '', $token);
+
+                json_response([
+                    'appointment_id'   => $appointment['id'],
+                    'appointment_hash' => $appointment['hash'],
+                    'confirmation'     => ['status' => 'pending_email', 'expires_at' => $expiresAt],
+                ]);
+                return; // Pas de  notification tant que non confirmé
+            }
 
             $company_color = setting('company_color');
 
@@ -771,4 +800,28 @@ class Booking extends EA_Controller
 
         return $provider_list;
     }
+    private function _sendConfirmationEmail(string $email, string $token): void
+    {
+        $appUrl   = rtrim(getenv('APP_URL') ?: base_url(), '/');
+        $link     = $appUrl . '/booking/confirm?token=' . urlencode($token);
+        $fromMail = getenv('EA_EMAIL_FROM') ?: 'no-reply@example.local';
+        $fromName = getenv('EA_EMAIL_FROM_NAME') ?: 'Prise de RDV';
+
+        $body = $this->load->view('emails/confirm_appointment', ['link' => $link], true);
+
+        $this->load->library('email');
+        $this->email->clear(true);
+        $this->email->from($fromMail, $fromName);
+        $this->email->to($email);
+        $this->email->subject('Confirmez votre rendez-vous');
+        $this->email->set_mailtype('html');
+        $this->email->message($body);
+        $this->email->send();
+    }
+
+    private function _renderConfirmResult(string $state): void
+    {
+        $this->load->view('booking/confirm_result', ['state' => $state]);
+    }
+
 }
