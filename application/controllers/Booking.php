@@ -443,19 +443,24 @@ class Booking extends EA_Controller
             $appointment['status'] = $appointment_status_options[0] ?? null;
             $appointment['end_datetime'] = $this->appointments_model->calculate_end_datetime($appointment);
 
-            // Anti-spam: si flag ON, passer en brouillon
-            $require_email_confirm = (getenv('EA_REQUIRE_EMAIL_CONFIRMATION') === 'true');
+            // 1) Lire les flags/env proprement
+            $require_email_confirm = $this->env_bool('EA_REQUIRE_EMAIL_CONFIRMATION', true);
+            $ttlSeconds = (int)((getenv('EA_CONFIRM_TTL_SECONDS') !== false) ? getenv('EA_CONFIRM_TTL_SECONDS') : 300);
+
+            // 2) Forcer le statut brouillon si l'anti-spam est actif
             if ($require_email_confirm) {
                 $appointment['status'] = 'waiting_email';
             }
 
+            // ... (save $appointment) ...
             $this->appointments_model->only($appointment, $this->allowed_appointment_fields);
             $appointment_id = $this->appointments_model->save($appointment);
             $appointment    = $this->appointments_model->find($appointment_id);
+
+            // 3) Si anti-spam ON : créer le token, insérer en DB, envoyer l'e-mail, et retourner tout de suite
             if ($require_email_confirm) {
-                $ttlSeconds = (int)(getenv('EA_CONFIRM_TTL_SECONDS') ?: 300);
-                $token      = bin2hex(random_bytes(32));
-                $expiresAt  = (new DateTime("+{$ttlSeconds} seconds"))->format('Y-m-d H:i:s');
+                $token     = bin2hex(random_bytes(32));
+                $expiresAt = (new DateTime("+{$ttlSeconds} seconds"))->format('Y-m-d H:i:s');
 
                 $this->db->insert('appointment_email_confirmations', [
                     'appointment_id' => (int)$appointment['id'],
@@ -474,7 +479,7 @@ class Booking extends EA_Controller
                     'appointment_hash' => $appointment['hash'],
                     'confirmation'     => ['status' => 'pending_email', 'expires_at' => $expiresAt],
                 ]);
-                return; // Pas de  notification tant que non confirmé
+                return;
             }
 
             $company_color = setting('company_color');
@@ -800,12 +805,20 @@ class Booking extends EA_Controller
 
         return $provider_list;
     }
-    private function _sendConfirmationEmail(string $email, string $token): void
+    private function env_bool(string $name, bool $default = false): bool
+    {
+        $v = getenv($name);
+        if ($v === false) return $default;
+        return in_array(strtolower((string)$v), ['1','true','on','yes'], true);
+    }
+
+    private function _sendConfirmationEmail(string $email, string $token): bool
     {
         $appUrl   = rtrim(getenv('APP_URL') ?: base_url(), '/');
         $link     = $appUrl . '/booking/confirm?token=' . urlencode($token);
         $fromMail = getenv('EA_EMAIL_FROM') ?: 'no-reply@example.local';
         $fromName = getenv('EA_EMAIL_FROM_NAME') ?: 'Prise de RDV';
+        $appUrl   = rtrim(getenv('APP_URL') ?: base_url(), '/');
 
         $body = $this->load->view('emails/confirm_appointment', ['link' => $link], true);
 
@@ -817,11 +830,77 @@ class Booking extends EA_Controller
         $this->email->set_mailtype('html');
         $this->email->message($body);
         $this->email->send();
+
+        $ok = $this->email->send();
+        if (!$ok) {
+            $dbg = $this->email->print_debugger(['headers','subject','body']);
+            log_message('error', 'Email confirmation FAILED: ' . $dbg);
+        } else {
+            log_message('info', 'Email confirmation SENT to ' . $email);
+        }
+        return $ok;
     }
 
     private function _renderConfirmResult(string $state): void
     {
         $this->load->view('booking/confirm_result', ['state' => $state]);
     }
+    public function confirm(): void
+    {
+        try {
+            $token = $this->input->get('token', true);
+            if (!$token) { $this->_renderConfirmResult('invalid'); return; }
 
+            $tbl = $this->db->dbprefix('appointment_email_confirmations'); // "ea_appointment_email_confirmations"
+            // Récupère la ligne de confirmation + le RDV
+            $conf = $this->db->select('aec.*, a.id AS appt_id, a.id_users_provider, a.id_users_customer, a.id_services')
+                ->from("$tbl aec")
+                ->join('ea_appointments a', 'a.id = aec.appointment_id')
+                ->where('aec.token', $token)
+                ->get()->row_array();
+
+            if (!$conf) { $this->_renderConfirmResult('invalid'); return; }
+
+            if (in_array($conf['status'], ['confirmed','cancelled'], true)) {
+                $this->_renderConfirmResult($conf['status']); return;
+            }
+
+            $now = new DateTime();
+            if ($now > new DateTime($conf['expires_at'])) {
+                $this->db->where('id', $conf['id'])->update($tbl, ['status' => 'expired']);
+                $this->_renderConfirmResult('expired'); return;
+            }
+
+            // Confirme le token + publie le RDV
+            $this->db->trans_start();
+            $this->db->where('id', $conf['id'])->update($tbl, ['status' => 'confirmed', 'confirmed_at' => $now->format('Y-m-d H:i:s'),
+            ]);
+            $this->db->where('id', (int)$conf['appt_id'])->update('ea_appointments', ['status' => 'approved']);
+            $this->db->trans_complete();
+
+            // Envoie les notifs maintenant
+            $appointment = $this->appointments_model->find((int)$conf['appt_id']);
+            $provider    = $this->providers_model->find($appointment['id_users_provider']);
+            $service     = $this->services_model->find($appointment['id_services']);
+            $customer    = $this->customers_model->find($appointment['id_users_customer']);
+
+            $company_color = setting('company_color');
+            $settings = [
+                'company_name'  => setting('company_name'),
+                'company_link'  => setting('company_link'),
+                'company_email' => setting('company_email'),
+                'company_color' => !empty($company_color) && $company_color != DEFAULT_COMPANY_COLOR ? $company_color : null,
+                'date_format'   => setting('date_format'),
+                'time_format'   => setting('time_format'),
+            ];
+
+            $this->synchronization->sync_appointment_saved($appointment, $service, $provider, $customer, $settings);
+            $this->notifications->notify_appointment_saved($appointment, $service, $provider, $customer, $settings, false);
+            $this->webhooks_client->trigger(WEBHOOK_APPOINTMENT_SAVE, $appointment);
+
+            $this->_renderConfirmResult('confirmed');
+        } catch (Throwable $e) {
+            $this->_renderConfirmResult('invalid');
+        }
+    }
 }
