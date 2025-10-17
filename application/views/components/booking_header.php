@@ -18,6 +18,8 @@
             <span class="display-booking-selection">
                 <?= lang('service') ?> │ <?= lang('provider') ?>
             </span>
+
+
         </div>
     </div>
 
