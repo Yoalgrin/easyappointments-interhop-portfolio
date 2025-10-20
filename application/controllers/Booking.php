@@ -818,7 +818,6 @@ class Booking extends EA_Controller
         $link     = $appUrl . '/booking/confirm?token=' . urlencode($token);
         $fromMail = getenv('EA_EMAIL_FROM') ?: 'no-reply@example.local';
         $fromName = getenv('EA_EMAIL_FROM_NAME') ?: 'Prise de RDV';
-        $appUrl   = rtrim(getenv('APP_URL') ?: base_url(), '/');
 
         $body = $this->load->view('emails/confirm_appointment', ['link' => $link], true);
 
@@ -829,7 +828,6 @@ class Booking extends EA_Controller
         $this->email->subject('Confirmez votre rendez-vous');
         $this->email->set_mailtype('html');
         $this->email->message($body);
-        $this->email->send();
 
         $ok = $this->email->send();
         if (!$ok) {
@@ -845,22 +843,23 @@ class Booking extends EA_Controller
     {
         $this->load->view('booking/confirm_result', ['state' => $state]);
     }
+
     public function confirm(): void
     {
         try {
             $token = $this->input->get('token', true);
             if (!$token) { $this->_renderConfirmResult('invalid'); return; }
 
-            $tbl = $this->db->dbprefix('appointment_email_confirmations'); // "ea_appointment_email_confirmations"
-            // Récupère la ligne de confirmation + le RDV
+            $tbl     = $this->db->dbprefix('appointment_email_confirmations'); // ea_appointment_email_confirmations
+            $apptTbl = $this->db->dbprefix('appointments');                    // ea_appointments
+
             $conf = $this->db->select('aec.*, a.id AS appt_id, a.id_users_provider, a.id_users_customer, a.id_services')
                 ->from("$tbl aec")
-                ->join('ea_appointments a', 'a.id = aec.appointment_id')
+                ->join("$apptTbl a", 'a.id = aec.appointment_id')
                 ->where('aec.token', $token)
                 ->get()->row_array();
 
             if (!$conf) { $this->_renderConfirmResult('invalid'); return; }
-
             if (in_array($conf['status'], ['confirmed','cancelled'], true)) {
                 $this->_renderConfirmResult($conf['status']); return;
             }
@@ -871,14 +870,20 @@ class Booking extends EA_Controller
                 $this->_renderConfirmResult('expired'); return;
             }
 
-            // Confirme le token + publie le RDV
+            // Confirme + publie atomiquement
             $this->db->trans_start();
-            $this->db->where('id', $conf['id'])->update($tbl, ['status' => 'confirmed', 'confirmed_at' => $now->format('Y-m-d H:i:s'),
+            $this->db->where('id', $conf['id'])->update($tbl, [
+                'status'       => 'confirmed',
+                'confirmed_at' => $now->format('Y-m-d H:i:s'),
             ]);
-            $this->db->where('id', (int)$conf['appt_id'])->update('ea_appointments', ['status' => 'approved']);
+            $this->db->where('id', (int)$conf['appt_id'])->update($apptTbl, ['status' => 'approved']);
             $this->db->trans_complete();
 
-            // Envoie les notifs maintenant
+            if ($this->db->trans_status() === false) {
+                $this->_renderConfirmResult('invalid'); return;
+            }
+
+            // Notifications après confirmation
             $appointment = $this->appointments_model->find((int)$conf['appt_id']);
             $provider    = $this->providers_model->find($appointment['id_users_provider']);
             $service     = $this->services_model->find($appointment['id_services']);
@@ -903,4 +908,5 @@ class Booking extends EA_Controller
             $this->_renderConfirmResult('invalid');
         }
     }
+
 }

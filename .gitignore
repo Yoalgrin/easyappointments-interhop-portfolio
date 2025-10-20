@@ -31,3 +31,14 @@
 /vendor/
 /metafile
 .DS_Store
+.env
+*/.env
+.env
+*/.env
+
+# Env secrets
+.env
+*/.env
+
+# Windows ADS metadata
+*:[Zz]one.Identifier
