@@ -31,3 +31,10 @@
 /vendor/
 /metafile
 .DS_Store
+
+# local probes
+.well-known/
+.whoami.txt
+assets/_probe.txt
+assets/js/custom/
+zzz_probe.php
