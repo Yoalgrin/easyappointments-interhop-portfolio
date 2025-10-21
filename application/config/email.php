@@ -29,6 +29,30 @@ defined('BASEPATH') or exit('No direct script access allowed');
  * - 'riseup'   = mail.riseup.net (587 tls ou 465 ssl)
  * - 'mailhog'  = localhost:1025 sans auth (par défaut)
  */
+/**
+ * Patch sécurité — permet de charger email.php avant CI bootstrap
+ */
+if (!function_exists('env_pick')) {
+    function env_pick(array $candidates, $default = null) {
+        foreach ($candidates as $key) {
+            $v = getenv($key);
+            if ($v !== false && $v !== '') {
+                return $v;
+            }
+        }
+        return $default;
+    }
+}
+
+if (!function_exists('env_bool')) {
+    function env_bool($candidates, $default = false) {
+        $v = is_array($candidates) ? env_pick($candidates, null) : getenv($candidates);
+        if ($v === false || $v === null || $v === '') return $default;
+        $v = strtolower(trim((string)$v));
+        return in_array($v, ['1','true','on','yes'], true) ? true :
+            (in_array($v, ['0','false','off','no'], true) ? false : $default);
+    }
+}
 
 $driver = getenv('EA_SMTP_DRIVER') ?: 'mailhog';
 
