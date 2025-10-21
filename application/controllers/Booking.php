@@ -318,6 +318,225 @@ class Booking extends EA_Controller
         $this->load->view('pages/booking');
     }
 
+    public function provider_booking($provider_id){
+
+        if (!is_app_installed()) {
+            redirect('installation');
+            return;
+        }
+
+        $provider = $this->providers_model->find($provider_id);
+
+        $company_name = setting('company_name');
+        $company_logo = setting('company_logo');
+        $company_color = setting('company_color');
+        $disable_booking = setting('disable_booking');
+        $google_analytics_code = setting('google_analytics_code');
+        $matomo_analytics_url = setting('matomo_analytics_url');
+        $matomo_analytics_site_id = setting('matomo_analytics_site_id');
+
+        if ($disable_booking) {
+            $disable_booking_message = setting('disable_booking_message');
+
+            html_vars([
+                'show_message' => true,
+                'page_title' => lang('page_title') . ' ' . $company_name,
+                'message_title' => lang('booking_is_disabled'),
+                'message_text' => $disable_booking_message,
+                'message_icon' => base_url('assets/img/error.png'),
+                'google_analytics_code' => $google_analytics_code,
+                'matomo_analytics_url' => $matomo_analytics_url,
+                'matomo_analytics_site_id' => $matomo_analytics_site_id,
+            ]);
+
+            $this->load->view('pages/booking_message');
+
+            return;
+        }
+
+        $available_services = $this->services_model->get_available_services(true);
+        $available_providers = [$provider];
+
+        $this->providers_model->only($provider, $this->allowed_provider_fields);
+
+
+        $date_format = setting('date_format');
+        $time_format = setting('time_format');
+        $first_weekday = setting('first_weekday');
+        $display_first_name = setting('display_first_name');
+        $require_first_name = setting('require_first_name');
+        $display_last_name = setting('display_last_name');
+        $require_last_name = setting('require_last_name');
+        $display_email = setting('display_email');
+        $require_email = setting('require_email');
+        $display_phone_number = setting('display_phone_number');
+        $require_phone_number = setting('require_phone_number');
+        $display_address = setting('display_address');
+        $require_address = setting('require_address');
+        $display_city = setting('display_city');
+        $require_city = setting('require_city');
+        $display_zip_code = setting('display_zip_code');
+        $require_zip_code = setting('require_zip_code');
+        $display_notes = setting('display_notes');
+        $require_notes = setting('require_notes');
+        $display_cookie_notice = setting('display_cookie_notice');
+        $cookie_notice_content = setting('cookie_notice_content');
+        $display_terms_and_conditions = setting('display_terms_and_conditions');
+        $terms_and_conditions_content = setting('terms_and_conditions_content');
+        $display_privacy_policy = setting('display_privacy_policy');
+        $privacy_policy_content = setting('privacy_policy_content');
+        $display_any_provider = setting('display_any_provider');
+        $display_login_button = setting('display_login_button');
+        $display_delete_personal_information = setting('display_delete_personal_information');
+        $book_advance_timeout = setting('book_advance_timeout');
+        $theme = request('theme', setting('theme', 'default'));
+
+        if (empty($theme) || !file_exists(__DIR__ . '/../../assets/css/themes/' . $theme . '.min.css')) {
+            $theme = 'default';
+        }
+
+        $timezones = $this->timezones->to_array();
+        $grouped_timezones = $this->timezones->to_grouped_array();
+
+        $appointment_hash = html_vars('appointment_hash');
+
+        if (!empty($appointment_hash)) {
+            // Load the appointments data and enable the manage mode of the booking page.
+
+            $manage_mode = true;
+
+            $results = $this->appointments_model->get(['hash' => $appointment_hash]);
+
+            if (empty($results)) {
+                html_vars([
+                    'show_message' => true,
+                    'page_title' => lang('page_title') . ' ' . $company_name,
+                    'message_title' => lang('appointment_not_found'),
+                    'message_text' => lang('appointment_does_not_exist_in_db'),
+                    'message_icon' => base_url('assets/img/error.png'),
+                    'google_analytics_code' => $google_analytics_code,
+                    'matomo_analytics_url' => $matomo_analytics_url,
+                    'matomo_analytics_site_id' => $matomo_analytics_site_id,
+                ]);
+
+                $this->load->view('pages/booking_message');
+
+                return;
+            }
+
+            // Make sure the appointment can still be rescheduled.
+
+            $start_datetime = strtotime($results[0]['start_datetime']);
+
+            $limit = strtotime('+' . $book_advance_timeout . ' minutes', strtotime('now'));
+
+            if ($start_datetime < $limit) {
+                $hours = floor($book_advance_timeout / 60);
+
+                $minutes = $book_advance_timeout % 60;
+
+                html_vars([
+                    'show_message' => true,
+                    'page_title' => lang('page_title') . ' ' . $company_name,
+                    'message_title' => lang('appointment_locked'),
+                    'message_text' => strtr(lang('appointment_locked_message'), [
+                        '{$limit}' => sprintf('%02d:%02d', $hours, $minutes),
+                    ]),
+                    'message_icon' => base_url('assets/img/error.png'),
+                    'google_analytics_code' => $google_analytics_code,
+                    'matomo_analytics_url' => $matomo_analytics_url,
+                    'matomo_analytics_site_id' => $matomo_analytics_site_id,
+                ]);
+
+                $this->load->view('pages/booking_message');
+
+                return;
+            }
+
+            $appointment = $results[0];
+            $providers = $this->providers_model->find($appointment['id_users_provider']);
+            $customer = $this->customers_model->find($appointment['id_users_customer']);
+            $customer_token = md5(uniqid(mt_rand(), true));
+
+            // Cache the token for 10 minutes.
+            $this->cache->save('customer-token-' . $customer_token, $customer['id'], 600);
+        } else {
+            $manage_mode = false;
+            $customer_token = false;
+            $appointment = null;
+            $providers = null;
+            $customer = null;
+        }
+
+        script_vars([
+            'manage_mode' => $manage_mode,
+            'available_services' => $available_services,
+            'available_providers' => $available_providers,
+            'date_format' => $date_format,
+            'time_format' => $time_format,
+            'first_weekday' => $first_weekday,
+            'display_cookie_notice' => $display_cookie_notice,
+            'display_any_provider' => setting('display_any_provider'),
+            'future_booking_limit' => setting('future_booking_limit'),
+            'appointment_data' => $appointment,
+            'provider_data' => $providers,
+            'customer_data' => $customer,
+            'customer_token' => $customer_token,
+            'default_language' => setting('default_language'),
+            'default_timezone' => setting('default_timezone'),
+        ]);
+
+        html_vars([
+            'available_services' => $available_services,
+            'available_providers' => $available_providers,
+            'theme' => $theme,
+            'company_name' => $company_name,
+            'company_logo' => $company_logo,
+            'company_color' => $company_color === '#ffffff' ? '' : $company_color,
+            'date_format' => $date_format,
+            'time_format' => $time_format,
+            'first_weekday' => $first_weekday,
+            'display_first_name' => $display_first_name,
+            'require_first_name' => $require_first_name,
+            'display_last_name' => $display_last_name,
+            'require_last_name' => $require_last_name,
+            'display_email' => $display_email,
+            'require_email' => $require_email,
+            'display_phone_number' => $display_phone_number,
+            'require_phone_number' => $require_phone_number,
+            'display_address' => $display_address,
+            'require_address' => $require_address,
+            'display_city' => $display_city,
+            'require_city' => $require_city,
+            'display_zip_code' => $display_zip_code,
+            'require_zip_code' => $require_zip_code,
+            'display_notes' => $display_notes,
+            'require_notes' => $require_notes,
+            'display_cookie_notice' => $display_cookie_notice,
+            'cookie_notice_content' => $cookie_notice_content,
+            'display_terms_and_conditions' => $display_terms_and_conditions,
+            'terms_and_conditions_content' => $terms_and_conditions_content,
+            'display_privacy_policy' => $display_privacy_policy,
+            'privacy_policy_content' => $privacy_policy_content,
+            'display_any_provider' => $display_any_provider,
+            'display_login_button' => $display_login_button,
+            'display_delete_personal_information' => $display_delete_personal_information,
+            'google_analytics_code' => $google_analytics_code,
+            'matomo_analytics_url' => $matomo_analytics_url,
+            'matomo_analytics_site_id' => $matomo_analytics_site_id,
+            'timezones' => $timezones,
+            'grouped_timezones' => $grouped_timezones,
+            'manage_mode' => $manage_mode,
+            'appointment_data' => $appointment,
+            'provider_data' => $providers,
+            'customer_data' => $customer,
+        ]);
+
+
+        $this->load->view('pages/booking_message');
+
+    }
+
     /**
      * Register the appointment to the database.
      */

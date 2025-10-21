@@ -57,6 +57,8 @@ $route['404_override'] = '';
 
 $route['translate_uri_dashes'] = FALSE;
 
+$route['provider/(:num)'] = 'booking/provider_booking/$1';
+
 /*
 | -------------------------------------------------------------------------
 | FRAME OPTIONS HEADERS
