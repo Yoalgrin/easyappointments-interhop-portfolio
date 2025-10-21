@@ -816,8 +816,8 @@ class Booking extends EA_Controller
     {
         $appUrl   = rtrim(getenv('APP_URL') ?: base_url(), '/');
         $link     = $appUrl . '/booking/confirm?token=' . urlencode($token);
-        $fromMail = getenv('EA_EMAIL_FROM') ?: 'no-reply@example.local';
-        $fromName = getenv('EA_EMAIL_FROM_NAME') ?: 'Prise de RDV';
+        $fromMail = env_pick(['INTERHOP_EA_EMAIL_FROM','EA_EMAIL_FROM'], 'no-reply@example.local');
+        $fromName = env_pick(['INTERHOP_EA_EMAIL_FROM_NAME','EA_EMAIL_FROM_NAME'], 'Prise de RDV InterHop');
 
         $body = $this->load->view('emails/confirm_appointment', ['link' => $link], true);
 
@@ -908,5 +908,4 @@ class Booking extends EA_Controller
             $this->_renderConfirmResult('invalid');
         }
     }
-
 }
