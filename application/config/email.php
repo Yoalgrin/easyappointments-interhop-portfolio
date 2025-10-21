@@ -36,36 +36,40 @@ $config = [
     'useragent' => 'EA-InterHop',
     'protocol' => 'smtp',
     'mailtype' => 'html',
+    'smt_debug' => '0',
+    'smtp_auth' => true,
     'charset' => 'UTF-8',
     'newline' => "\r\n",
     'crlf' => "\r\n",
     'smtp_timeout' => 10,
 ];
+// Choix du driver:
+
+$driver = env_pick(['INTERHOP_EA_SMTP_DRIVER', 'EA_SMTP_DRIVER'], 'mailhog');
 
 switch ($driver) {
     case 'riseup':
-        $config['smtp_host'] = 'mail.riseup.net';
-        $config['smtp_port'] = (int)(getenv('EA_SMTP_PORT') ?: 587);
-        $config['smtp_crypto'] = getenv('EA_SMTP_CRYPTO') ?: 'tls'; // 'ssl' si 465
-        $config['smtp_user'] = getenv('EA_SMTP_USER');            // ex: interhop@riseup.net
-        $config['smtp_pass'] = getenv('EA_SMTP_PASS');
+        $config['smtp_host']   = env_pick(['INTERHOP_EA_SMTP_HOST','EA_SMTP_HOST'], 'mail.riseup.net');
+        $config['smtp_port']   = (int) env_pick(['INTERHOP_EA_SMTP_PORT','EA_SMTP_PORT'], 587);
+        $config['smtp_crypto'] = env_pick(['INTERHOP_EA_SMTP_CRYPTO','EA_SMTP_CRYPTO'], 'tls');
+        $config['smtp_user']   = env_pick(['INTERHOP_EA_SMTP_USER','EA_SMTP_USER']);
+        $config['smtp_pass']   = env_pick(['INTERHOP_EA_SMTP_PASS','EA_SMTP_PASS']);
         break;
 
     case 'personal':
-        // Ex: Outlook/Hotmail (smtp.office365.com:587 tls) ou autre fournisseur
-        $config['smtp_host'] = getenv('EA_SMTP_HOST') ?: 'smtp.office365.com';
-        $config['smtp_port'] = (int)(getenv('EA_SMTP_PORT') ?: 587);
-        $config['smtp_crypto'] = getenv('EA_SMTP_CRYPTO') ?: 'tls';
-        $config['smtp_user'] = getenv('EA_SMTP_USER');            // ex: yoalgrin@hotmail.com
-        $config['smtp_pass'] = getenv('EA_SMTP_PASS');            // mot de passe d'application
+        $config['smtp_host']   = env_pick(['INTERHOP_EA_SMTP_HOST','EA_SMTP_HOST']);
+        $config['smtp_port']   = (int) env_pick(['INTERHOP_EA_SMTP_PORT','EA_SMTP_PORT'], 587);
+        $config['smtp_crypto'] = env_pick(['INTERHOP_EA_SMTP_CRYPTO','EA_SMTP_CRYPTO'], 'tls');
+        $config['smtp_user']   = env_pick(['INTERHOP_EA_SMTP_USER','EA_SMTP_USER']);
+        $config['smtp_pass']   = env_pick(['INTERHOP_EA_SMTP_PASS','EA_SMTP_PASS']);
         break;
 
-    default: // 'mailhog'
-        $config['smtp_host'] = getenv('EA_MAILHOG_HOST') ?: 'localhost';
-        $config['smtp_port'] = (int)(getenv('EA_MAILHOG_PORT') ?: 1025);
+    default: // mailhog/mailpit (dev)
+        $config['smtp_host']   = env_pick(['INTERHOP_EA_MAILHOG_HOST'], 'localhost');
+        $config['smtp_port']   = (int) env_pick(['INTERHOP_EA_MAILHOG_PORT'], 1025);
         $config['smtp_crypto'] = '';
-        $config['smtp_user'] = '';
-        $config['smtp_pass'] = '';
+        $config['smtp_user']   = '';
+        $config['smtp_pass']   = '';
         break;
 }
 
