@@ -30,8 +30,10 @@ if ($request_uri === '.')
 {
     $request_uri = '';
 }
+$prefix = $_SERVER['HTTP_X_FORWARDED_PREFIX'] ?? '';
+if ($prefix !== '' && substr($prefix, -1) !== '/') { $prefix .= '/'; }
 
-$config['base_url'] = rtrim(! is_cli() ? $protocol . $domain . $request_uri : Config::BASE_URL, '/');
+$config['base_url'] = rtrim(! is_cli() ? ($protocol . $domain . '/' . ltrim($prefix, '/')) : Config::BASE_URL, '/');
 
 /*
 |--------------------------------------------------------------------------
@@ -88,58 +90,72 @@ $config['url_suffix'] = '';
 */
 
 $languages = [
-    'sq' => 'albanian',
-    'ar' => 'arabic',
-    'bs' => 'bosnian',
-    'bu' => 'bulgarian',
-    'ca' => 'catalan',
-    'cs' => 'czech',
-    'da' => 'danish',
-    'de' => 'german',
-    'el' => 'greek',
     'en' => 'english',
-    'es' => 'spanish',
-    'et' => 'estonian',
-    'fa' => 'persian',
-    'fi' => 'finnish',
     'fr' => 'french',
-    'he' => 'hebrew',
-    'hi' => 'hindi',
-    'hr' => 'croatian',
-    'hu' => 'hungarian',
+    'de' => 'german',
+    'es' => 'spanish',
     'it' => 'italian',
-    'ja' => 'japanese',
-    'lb' => 'luxembourgish',
-    'lt' => 'lithuanian',
-    'lv' => 'latvian',
-    'mr' => 'marathi',
     'nl' => 'dutch',
-    'no' => 'norwegian',
-    'pl' => 'polish',
     'pt' => 'portuguese',
+    'pt-br' => 'portuguese-br',
+    'pl' => 'polish',
     'ro' => 'romanian',
-    'rs' => 'serbian',
     'ru' => 'russian',
+    'uk' => 'ukrainian',
+    'bg' => 'bulgarian',
+    'cs' => 'czech',
     'sk' => 'slovak',
     'sl' => 'slovenian',
     'sv' => 'swedish',
-    'th' => 'thai',
+    'da' => 'danish',
+    'no' => 'norwegian',
+    'fi' => 'finnish',
+    'et' => 'estonian',
+    'lv' => 'latvian',
+    'lt' => 'lithuanian',
+    'el' => 'greek',
     'tr' => 'turkish',
+    'sr' => 'serbian',
+    'bs' => 'bosnian',
+    'hr' => 'croatian',
+    'he' => 'hebrew',
+    'ar' => 'arabic',
+    'fa' => 'persian',
+    'hi' => 'hindi',
+    'mr' => 'marathi',
+    'ja' => 'japanese',
     'zh' => 'chinese',
-    'uk' => 'ukrainian',
+    'zh-tw' => 'traditional-chinese',
+    'th' => 'thai',
+    'ca' => 'catalan',
+    'lb' => 'luxembourgish',
 ];
 
 $config['language_codes'] = $languages;
 
-$language_code = isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? substr($_SERVER['HTTP_ACCEPT_LANGUAGE'], 0, 2) : 'en';
+// 1) code demandé en GET ?language=fr (ou ?language=pt-br)
+$requested = isset($_GET['language']) ? strtolower($_GET['language']) : null;
 
-$config['language'] =
-    $_GET['language'] ??
-    (isset($_SERVER['HTTP_ACCEPT_LANGUAGE'], $languages[$language_code])
-        ? $languages[$language_code]
-        : Config::LANGUAGE);
+// 2) sinon, 1er code du navigateur
+$browser   = isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])
+    ? strtolower(substr($_SERVER['HTTP_ACCEPT_LANGUAGE'], 0, 2))
+    : null;
 
-$config['language_code'] = array_search($config['language'], $languages) ?: 'en';
+// 3) langue par défaut de l’app
+$default   = 'fr';
+
+// Choix final du code ISO
+if ($requested && isset($languages[$requested])) {
+    $lang_code = $requested;
+} elseif ($browser && isset($languages[$browser])) {
+    $lang_code = $browser;
+} else {
+    $lang_code = $default;
+}
+
+// Alimente la config CI
+$config['language_code'] = $lang_code;
+$config['language']      = $languages[$lang_code];
 
 /*
 |--------------------------------------------------------------------------

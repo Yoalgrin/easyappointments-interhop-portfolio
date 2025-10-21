@@ -1,33 +1,35 @@
-/*.zip
-/.idea/
-/.tmp-package/
-/build/
-/docs/apigen/html
-/docs/jsdoc/html
-/docs/plato/html
-/docker/mysql/
-/docker/baikal/
-/docker/openldap/
-/node_modules/
-/npm-debug.log
-/assets/js/**/*.min.js
-/assets/css/**/*.css
-/assets/vendor
-/config.php
-/storage/backups/*
-!/storage/backups/.htaccess
-!/storage/backups/index.html
-/storage/cache/*
-!/storage/cache/.htaccess
-!/storage/cache/index.html
-/storage/logs/*
-!/storage/logs/.htaccess
-!/storage/logs/index.html
-/storage/sessions/*
-!/storage/sessions/.htaccess
-!/storage/sessions/index.html
-/storage/uploads/*
-!/storage/uploads/index.html
-/vendor/
-/metafile
+# Node / build
+node_modules/
+dist/
+build/
+coverage/
+
+# PHP / vendor
+vendor/
+composer.lock
+
+# IDE / OS
+.vscode/
+.idea/
 .DS_Store
+Thumbs.db
+
+# Logs & temp
+*.log
+tmp/
+storage/
+cache/
+
+# Env secrets
+.env
+*/.env
+
+# Local probes / debug files
+.well-known/
+.whoami.txt
+assets/_probe.txt
+assets/js/custom/
+zzz_probe.php
+
+# Windows ADS metadata
+*:[Zz]one.Identifier

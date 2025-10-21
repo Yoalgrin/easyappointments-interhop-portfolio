@@ -673,7 +673,9 @@ App.Pages.Booking = (function () {
         const providerOptionText = providerId ? $selectProvider.find('option:selected').text() : lang('provider');
 
         if (serviceId || providerId) {
-            $displayBookingSelection.text(`${serviceOptionText} │ ${providerOptionText}`);
+            const sLbl = lang('service');
+            const pLbl = lang('provider');
+            $displayBookingSelection.text(`${sLbl} : ${serviceOptionText} │ ${pLbl} : ${providerOptionText}`);
         }
 
         if (!$availableHours.find('.selected-hour').text()) {
