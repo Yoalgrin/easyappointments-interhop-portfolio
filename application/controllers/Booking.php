@@ -107,6 +107,13 @@ class Booking extends EA_Controller
             return;
         }
 
+        $provider_id = $this->input->get('provider');
+
+        if (!empty($provider_id)) {
+            $this->provider_booking($provider_id);
+            return;
+        }
+
         $company_name = setting('company_name');
         $company_logo = setting('company_logo');
         $company_color = setting('company_color');
@@ -318,7 +325,7 @@ class Booking extends EA_Controller
         $this->load->view('pages/booking');
     }
 
-    public function provider_booking($provider_id){
+    public function provider_booking($provider_id) : void{
 
         if (!is_app_installed()) {
             redirect('installation');
