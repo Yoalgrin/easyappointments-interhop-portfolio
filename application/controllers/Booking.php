@@ -354,7 +354,12 @@ class Booking extends EA_Controller
             return;
         }
 
-        $available_services = $this->services_model->get_available_services(true);
+        $available_services_id = $this->providers_model->get_service_ids($provider_id);
+        $available_services = [];
+        foreach ($available_services_id as $service_id) {
+            $available_services[] = $this->services_model->find($service_id);
+        }
+
         $available_providers = [$provider];
 
         $this->providers_model->only($provider, $this->allowed_provider_fields);
@@ -533,7 +538,7 @@ class Booking extends EA_Controller
         ]);
 
 
-        $this->load->view('pages/booking_message');
+        $this->load->view('pages/booking');
 
     }
 
