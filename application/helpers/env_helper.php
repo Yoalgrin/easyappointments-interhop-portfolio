@@ -34,4 +34,18 @@ if (!function_exists('env')) {
 
         return $_ENV[$key] ?? $default;
     }
+    if (!function_exists('env_pick')) {
+        /**
+         * Retourne la première variable d'env non vide parmi la liste $candidates.
+         * @param array $candidates Liste de clés env par ordre de priorité
+         * @param mixed $default Valeur par défaut si rien n'est trouvé
+         */
+        function env_pick(array $candidates, $default = null) {
+            foreach ($candidates as $key) {
+                $v = getenv($key);
+                if ($v !== false && $v !== '') return $v;
+            }
+            return $default;
+        }
+    }
 }
