@@ -109,6 +109,19 @@ class Account extends EA_Controller
     public function save(): void
     {
         try {
+            // Récupère le payload brut avant toute whitelist
+            $raw = request();
+            // Normalise la valeur quelle que soit la structure
+            $maxPatientsRaw =
+                $raw['interhop_max_patients']
+                ?? ($raw['account']['interhop_max_patients'] ?? null)
+                ?? ($raw['account']['settings']['interhop_max_patients'] ?? null);
+
+            // Cast/normalisation : NULL si vide, 0 ou non numérique ; entier si ≥ 1
+            $maxPatients = (is_numeric($maxPatientsRaw) && (int)$maxPatientsRaw >= 1)
+                ? (int)$maxPatientsRaw
+                : null;
+
             if (cannot('edit', PRIV_USER_SETTINGS)) {
                 throw new RuntimeException('You do not have the required permissions for this task.');
             }
@@ -130,7 +143,32 @@ class Account extends EA_Controller
             }
 
             $this->users_model->save($account);
+            // [InterHop] Enregistrement de la limite de patients si l'utilisateur est un(e) soignant(e).
+            if (session('role_slug') === DB_SLUG_PROVIDER) {
+                $providerId = (int) $account['id'];
 
+                // ⚠️ Utiliser la valeur normalisée récupérée avant la whitelist
+                // $maxPatients est déjà prêt
+
+                // ⚠️ Table conforme à la convention : interhop_ea_providers_limit
+                $table = 'ea_interhop_providers_limits';
+
+                $existing = $this->db
+                    ->where('provider_id', $providerId)
+                    ->get($table)
+                    ->row();
+
+                if ($existing) {
+                    $this->db
+                        ->where('provider_id', $providerId)
+                        ->update($table, ['max_patients' => $maxPatients]);
+                } else {
+                    $this->db->insert($table, [
+                        'provider_id'  => $providerId,
+                        'max_patients' => $maxPatients,
+                    ]);
+                }
+            }
             session([
                 'user_email' => $account['email'],
                 'username' => $account['settings']['username'],

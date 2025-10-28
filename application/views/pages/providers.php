@@ -229,6 +229,13 @@
                                     'grouped_timezones' => vars('grouped_timezones'),
                                 ]); ?>
                             </div>
+                            <div class="form-group">
+                                <label for="interhop-max-patients">
+                                    <?= lang('interhop_max_patients') ?>
+                                    <small class="text-muted">(<?= lang('interhop_max_patients_info') ?>)</small>
+                                </label>
+                                <input type="number" class="form-control" id="interhop-max-patients" placeholder="<?= lang('interhop_max_patients_placeholder') ?>" min="1" />
+                            </div>
 
                             <?php if (setting('ldap_is_active')): ?>
                                 <div class="mb-3">
