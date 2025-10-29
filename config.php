@@ -24,6 +24,7 @@
  * If you are updating from version 1.0 you will have to create a new "config.php"
  * file because the old "configuration.php" is not used anymore.
  */
+
 class Config
 {
     // ------------------------------------------------------------------------
@@ -38,7 +39,7 @@ class Config
     // DATABASE SETTINGS
     // ------------------------------------------------------------------------
 
-    const DB_HOST='127.0.0.1';
+    const DB_HOST = '127.0.0.1';
     const DB_NAME = 'easyappointments';
     const DB_USERNAME = 'ea_user';
     const DB_PASSWORD = 'prcVRyJ2BKD9#dU#';
