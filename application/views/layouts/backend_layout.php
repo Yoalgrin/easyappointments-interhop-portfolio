@@ -77,5 +77,9 @@
 
 <?php slot('scripts'); ?>
 
+<?php if (strtolower($this->router->class) === 'account' && strtolower($this->router->method) === 'index'): ?>
+    <script src="<?= asset_url('assets/js/backend/account-override.js') ?>"></script>
+<?php endif; ?>
+
 </body>
 </html>
