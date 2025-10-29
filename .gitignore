@@ -33,3 +33,8 @@ zzz_probe.php
 
 # Windows ADS metadata
 *:[Zz]one.Identifier
+
+# Build artefacts
+assets/**/*.min.js
+assets/**/*.min.css
+easyappointments-*.zip

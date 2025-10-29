@@ -16,6 +16,13 @@ $hook['post_controller_constructor'][] = [
     'filename' => 'InterhopTranslationHook.php',
     'filepath' => 'hooks',
 ];
+$hook['post_controller'][] = [
+    'class'    => 'InterhopAccountHook',
+    'function' => 'afterAccountSave',
+    'filename' => 'InterhopAccountHook.php',
+    'filepath' => 'hooks',
+    'params'   => [],
+];
 
 /* End of file hooks.php */
 /* Location: ./application/config/hooks.php */
