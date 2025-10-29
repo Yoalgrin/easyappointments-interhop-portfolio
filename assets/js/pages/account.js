@@ -35,6 +35,7 @@ App.Pages.Account = (function () {
     const notifications = $('#notifications');
     const $saveSettings = $('#save-settings');
     const $footerUserDisplayName = $('#footer-user-display-name');
+    const $maxPatients = $('#interhop-max-patients');
 
     /**
      * Check if the form has invalid values.
@@ -114,6 +115,8 @@ App.Pages.Account = (function () {
         $retypePassword.val('');
         $calendarView.val(account.settings.calendar_view);
         notifications.prop('checked', Boolean(Number(account.settings.notifications)));
+        $maxPatients.val(account.interhop_max_patients || '');
+
     }
 
     /**
@@ -122,6 +125,10 @@ App.Pages.Account = (function () {
      * @return {Object}
      */
     function serialize() {
+        const raw = $maxPatients.val();
+        const val = (typeof raw === 'string') ? raw.trim() : raw;
+        const interhopMax = (val === '') ? null : val;
+
         return {
             id: $userId.val(),
             first_name: $firstName.val(),
@@ -136,6 +143,7 @@ App.Pages.Account = (function () {
             notes: $notes.val(),
             language: $language.val(),
             timezone: $timezone.val(),
+            interhop_max_patients: interhopMax,
             settings: {
                 username: $username.val(),
                 password: $password.val() || undefined,

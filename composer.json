@@ -50,7 +50,6 @@
         "phpunit/phpunit": "^9.6"
     },
     "scripts": {
-        "pre-autoload-dump": "Google\\Task\\Composer::cleanup",
         "test": "APP_ENV=testing php vendor/bin/phpunit"
     },
     "extra": {

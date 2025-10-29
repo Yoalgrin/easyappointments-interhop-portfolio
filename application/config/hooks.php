@@ -10,6 +10,12 @@
 |	http://codeigniter.com/user_guide/general/hooks.html
 |
 */
+$hook['post_controller_constructor'][] = [
+    'class'    => 'InterhopTranslationHook',
+    'function' => 'inject',
+    'filename' => 'InterhopTranslationHook.php',
+    'filepath' => 'hooks',
+];
 $hook['post_controller'][] = [
     'class'    => 'InterhopAccountHook',
     'function' => 'afterAccountSave',

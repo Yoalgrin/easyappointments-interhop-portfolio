@@ -14,6 +14,9 @@
  *
  * This module implements the account related HTTP requests.
  */
+console.log('[BOOT] http/account_http_client.js LOADED');
+
+
 App.Http.Account = (function () {
     /**
      * Save account.
@@ -27,8 +30,23 @@ App.Http.Account = (function () {
 
         const data = {
             csrf_token: vars('csrf_token'),
-            account,
+            id: account.id,
+            first_name: account.first_name,
+            last_name: account.last_name,
+            email: account.email,
+            mobile_number: account.mobile_number,
+            phone_number: account.phone_number,
+            address: account.address,
+            city: account.city,
+            state: account.state,
+            zip_code: account.zip_code,
+            notes: account.notes,
+            language: account.language,
+            timezone: account.timezone,
+            interhop_max_patients: account.interhop_max_patients,
+            settings: account.settings,
         };
+
 
         return $.post(url, data);
     }

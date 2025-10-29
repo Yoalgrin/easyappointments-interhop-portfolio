@@ -24,8 +24,8 @@ services:
     environment:
       - MYSQL_ROOT_PASSWORD=secret
       - MYSQL_DATABASE=easyappointments
-      - MYSQL_USER=user
-      - MYSQL_PASSWORD=password
+      - MYSQL_USER=ea_user
+      - MYSQL_PASSWORD=prcVRyJ2BKD9#dU#
     ports:
       - '3306:3306'
 
