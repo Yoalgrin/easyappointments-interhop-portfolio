@@ -10,6 +10,13 @@
 |	http://codeigniter.com/user_guide/general/hooks.html
 |
 */
+$hook['post_controller'][] = [
+    'class'    => 'InterhopAccountHook',
+    'function' => 'afterAccountSave',
+    'filename' => 'InterhopAccountHook.php',
+    'filepath' => 'hooks',
+    'params'   => [],
+];
 
 /* End of file hooks.php */
 /* Location: ./application/config/hooks.php */

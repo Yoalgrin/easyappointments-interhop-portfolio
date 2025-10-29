@@ -29,8 +29,6 @@
 
     <?php slot('styles'); ?>
 
-    
-<!-- INTERHOP INLINE TEST --><style>body::before{content:"INTERHOP INLINE";position:fixed;top:0;left:0;right:auto;background:magenta;color:#fff;z-index:999999;padding:6px 10px;font:600 14px/1.2 sans-serif}</style>
 </head>
 <body>
 <div id="login-frame" class="frame-container">
