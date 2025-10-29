@@ -38,3 +38,5 @@ zzz_probe.php
 assets/**/*.min.js
 assets/**/*.min.css
 easyappointments-*.zip
+
+config.php
