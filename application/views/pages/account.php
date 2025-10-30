@@ -196,5 +196,6 @@
 
 <script src="<?= asset_url('assets/js/http/account_http_client.js') ?>"></script>
 <script src="<?= asset_url('assets/js/pages/account.js') ?>"></script>
+<script src="<?= asset_url('assets/js/backend/account-override.js') ?>"></script>
 
 <?php end_section('scripts'); ?>
