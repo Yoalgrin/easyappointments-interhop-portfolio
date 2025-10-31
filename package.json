@@ -67,6 +67,7 @@
     "build": "npx gulp build",
     "docs": "npx gulp docs",
     "postinstall": "bash scripts/sync-vendors.sh",
-    "vendors": "bash scripts/sync-vendors.sh"
+    "vendors": "bash scripts/sync-vendors.sh",
+    "verify:vendors": "bash scripts/sync-vendors.sh && echo vendors OK"
   }
 }
