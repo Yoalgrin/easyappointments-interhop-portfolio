@@ -131,8 +131,20 @@
 
 <?php section('scripts'); ?>
 
-<script src="<?= asset_url('assets/vendor/fullcalendar/index.global.min.js') ?>"></script>
-<script src="<?= asset_url('assets/vendor/fullcalendar-moment/index.global.min.js') ?>"></script>
+<!-- FullCalendar CSS (core + daygrid + timegrid + list) -->
+<link rel="stylesheet" href="<?= asset_url('assets/vendor/fullcalendar/index.global.css') ?>">
+<link rel="stylesheet" href="<?= asset_url('assets/vendor/fullcalendar-daygrid/index.global.css') ?>">
+<link rel="stylesheet" href="<?= asset_url('assets/vendor/fullcalendar-timegrid/index.global.css') ?>">
+<link rel="stylesheet" href="<?= asset_url('assets/vendor/fullcalendar-list/index.global.css') ?>">
+
+<!-- FullCalendar core + plugins requis -->
+<script src="<?= asset_url('assets/vendor/fullcalendar/index.global.js') ?>"></script>
+<script src="<?= asset_url('assets/vendor/fullcalendar-interaction/index.global.js') ?>"></script>
+<script src="<?= asset_url('assets/vendor/fullcalendar-daygrid/index.global.js') ?>"></script>
+<script src="<?= asset_url('assets/vendor/fullcalendar-timegrid/index.global.js') ?>"></script>
+<script src="<?= asset_url('assets/vendor/fullcalendar-list/index.global.js') ?>"></script>
+<script src="<?= asset_url('assets/vendor/fullcalendar-moment/index.global.js') ?>"></script>
+
 <script src="<?= asset_url('assets/vendor/jquery-jeditable/jquery.jeditable.min.js') ?>"></script>
 <script src="<?= asset_url('assets/js/utils/ui.js') ?>"></script>
 <script src="<?= asset_url('assets/js/utils/calendar_default_view.js') ?>"></script>
