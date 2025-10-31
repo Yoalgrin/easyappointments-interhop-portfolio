@@ -15,6 +15,7 @@
  * This module implements the functionality of the account page.
  */
 App.Pages.Account = (function () {
+    const $maxPatients = $('#interhop-max-patients');
     const $userId = $('#user-id');
     const $firstName = $('#first-name');
     const $lastName = $('#last-name');
@@ -35,6 +36,7 @@ App.Pages.Account = (function () {
     const notifications = $('#notifications');
     const $saveSettings = $('#save-settings');
     const $footerUserDisplayName = $('#footer-user-display-name');
+
     /**
      * Check if the form has invalid values.
      *
@@ -113,7 +115,7 @@ App.Pages.Account = (function () {
         $retypePassword.val('');
         $calendarView.val(account.settings.calendar_view);
         notifications.prop('checked', Boolean(Number(account.settings.notifications)));
-
+        $maxPatients.val(account.interhop_max_patients ?? '');
 
     }
 
@@ -124,8 +126,7 @@ App.Pages.Account = (function () {
      */
     function serialize() {
         const raw = $maxPatients.val();
-        const val = (typeof raw === 'string') ? raw.trim() : raw;
-        const interhopMax = (val === '') ? null : val;
+        const interhopMax = (typeof raw === 'string' ? raw.trim() : raw);
 
         return {
             id: $userId.val(),
@@ -141,6 +142,7 @@ App.Pages.Account = (function () {
             notes: $notes.val(),
             language: $language.val(),
             timezone: $timezone.val(),
+            interhop_max_patients: interhopMax === '' ? null : interhopMax,
             settings: {
                 username: $username.val(),
                 password: $password.val() || undefined,
@@ -149,6 +151,7 @@ App.Pages.Account = (function () {
             },
         };
     }
+
 
     /**
      * Save the account information.
