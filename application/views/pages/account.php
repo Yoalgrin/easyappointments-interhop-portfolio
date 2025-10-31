@@ -158,14 +158,6 @@
                                         'grouped_timezones' => vars('grouped_timezones'),
                                     ]); ?>
                                 </div>
-                                <div class="form-group">
-                                    <label for="interhop-max-patients"><?= lang('interhop_max_patients') ?></label>
-                                    <input type="number" id="interhop-max-patients" name="interhop_max_patients"
-                                           class="form-control" placeholder="<?= lang('interhop_max_patients_placeholder') ?>"
-                                           value="<?= htmlspecialchars($interhop_max_patients ?? '') ?>" />
-                                    <small class="form-text text-muted"><?= lang('interhop_max_patients_info') ?></small>
-                                </div>
-
                                 <div>
                                     <label class="form-label mb-3">
                                         <?= lang('options') ?>

@@ -25,7 +25,10 @@
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.5.2",
+    "@fullcalendar/core": "^6.1.19",
+    "@fullcalendar/daygrid": "^6.1.19",
     "@fullcalendar/moment": "^6.1.11",
+    "@fullcalendar/timegrid": "^6.1.19",
     "@popperjs/core": "^2.11.8",
     "bootstrap": "^5.3.3",
     "cookieconsent": "^3.1.1",
@@ -62,6 +65,8 @@
   "scripts": {
     "start": "npx --yes gulp",
     "build": "npx gulp build",
-    "docs": "npx gulp docs"
+    "docs": "npx gulp docs",
+    "postinstall": "bash scripts/sync-vendors.sh",
+    "vendors": "bash scripts/sync-vendors.sh"
   }
 }
