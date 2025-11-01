@@ -228,7 +228,14 @@ class Providers_model extends EA_Model
             $this->cast($provider);
             $provider['settings'] = $this->get_settings($provider['id']);
             $provider['services'] = $this->get_service_ids($provider['id']);
+            $this->attach_interhop_limit($provider);
         }
+        $provider['settings'] = $this->get_settings($provider['id']);
+        $provider['services'] = $this->get_service_ids($provider['id']);
+
+        $this->attach_interhop_limit($provider); // ← AJOUT
+
+        return $provider;
 
         return $providers;
     }
@@ -651,6 +658,7 @@ class Providers_model extends EA_Model
             $this->cast($provider);
             $provider['settings'] = $this->get_settings($provider['id']);
             $provider['services'] = $this->get_service_ids($provider['id']);
+            $this->attach_interhop_limit($provider);
         }
 
         return $providers;
@@ -709,6 +717,7 @@ class Providers_model extends EA_Model
             $this->cast($provider);
             $provider['settings'] = $this->get_settings($provider['id']);
             $provider['services'] = $this->get_service_ids($provider['id']);
+            $this->attach_interhop_limit($provider);
         }
 
         return $providers;
@@ -813,7 +822,10 @@ class Providers_model extends EA_Model
                     : null,
             ];
         }
-
+        if (array_key_exists('interhop_max_patients', $provider)) {
+            // On envoie tel quel (null = illimité ; sinon int)
+            $encoded_resource['interhop_max_patients'] = $provider['interhop_max_patients'];
+        }
         $provider = $encoded_resource;
     }
 
@@ -1021,4 +1033,13 @@ class Providers_model extends EA_Model
 
         return $row ? (int)$row['max_patients'] : null;
     }
+    private function attach_interhop_limit(array &$provider): void
+    {
+        if (!isset($provider['id'])) {
+            return;
+        }
+        $provider['interhop_max_patients'] = $this->get_max_patients((int)$provider['id']); // NULL = illimité
+    }
+
+
 }
