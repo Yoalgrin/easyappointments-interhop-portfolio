@@ -15,6 +15,7 @@
  * This module implements the functionality of the providers page.
  */
 App.Pages.Providers = (function () {
+    const $maxPatients = $('#interhop-max-patients'); // ID HTML conservé
     const $providers = $('#providers');
     const $id = $('#id');
     const $firstName = $('#first-name');
@@ -47,10 +48,6 @@ App.Pages.Providers = (function () {
     function addEventListeners() {
         /**
          * Event: Filter Providers Form "Submit"
-         *
-         * Filter the provider records with the given key string.
-         *
-         * @param {jQuery.Event} event
          */
         $providers.on('submit', '#filter-providers form', (event) => {
             event.preventDefault();
@@ -63,7 +60,7 @@ App.Pages.Providers = (function () {
         /**
          * Event: Filter Provider Row "Click"
          *
-         * Display the selected provider data to the user.
+         * Charge le provider COMPLET (inclut max_patients) avant affichage.
          */
         $providers.on('click', '.provider-row', (event) => {
             if ($filterProviders.find('.filter').prop('disabled')) {
@@ -72,12 +69,13 @@ App.Pages.Providers = (function () {
             }
 
             const providerId = $(event.currentTarget).attr('data-id');
-            const provider = filterResults.find((filterResult) => Number(filterResult.id) === Number(providerId));
 
-            App.Pages.Providers.display(provider);
-            $filterProviders.find('.selected').removeClass('selected');
-            $(event.currentTarget).addClass('selected');
-            $('#edit-provider, #delete-provider').prop('disabled', false);
+            App.Http.Providers.find(providerId).then((provider) => {
+                App.Pages.Providers.display(provider);
+                $filterProviders.find('.selected').removeClass('selected');
+                $(event.currentTarget).addClass('selected');
+                $('#edit-provider, #delete-provider').prop('disabled', false);
+            });
         });
 
         /**
@@ -187,6 +185,10 @@ App.Pages.Providers = (function () {
                 }
             });
 
+            // max_patients : '' = illimité ; sinon entier >= 1
+            const rawMax = ($maxPatients.val() || '').trim();
+            provider.max_patients = rawMax === '' ? '' : String(Math.max(1, parseInt(rawMax, 10)));
+
             // Include password if changed.
             if ($password.val() !== '') {
                 provider.settings.password = $password.val();
@@ -206,8 +208,6 @@ App.Pages.Providers = (function () {
 
         /**
          * Event: Cancel Provider Button "Click"
-         *
-         * Cancel add or edit of an provider record.
          */
         $providers.on('click', '#cancel-provider', () => {
             const id = $('#filter-providers .selected').attr('data-id');
@@ -232,9 +232,6 @@ App.Pages.Providers = (function () {
 
     /**
      * Save provider record to database.
-     *
-     * @param {Object} provider Contains the provider record data. If an 'id' value is provided
-     * then the update operation is going to be executed.
      */
     function save(provider) {
         App.Http.Providers.save(provider).then((response) => {
@@ -247,8 +244,6 @@ App.Pages.Providers = (function () {
 
     /**
      * Delete a provider record from database.
-     *
-     * @param {Number} id Record id to be deleted.
      */
     function remove(id) {
         App.Http.Providers.destroy(id).then(() => {
@@ -260,8 +255,6 @@ App.Pages.Providers = (function () {
 
     /**
      * Validates a provider record.
-     *
-     * @return {Boolean} Returns the validation result.
      */
     function validate() {
         $providers.find('.is-invalid').removeClass('is-invalid');
@@ -301,7 +294,6 @@ App.Pages.Providers = (function () {
 
             // Validate phone number.
             const phoneNumber = $phoneNumber.val();
-
             if (phoneNumber && !App.Utils.Validation.phone(phoneNumber)) {
                 $phoneNumber.addClass('is-invalid');
                 throw new Error(lang('invalid_phone'));
@@ -309,7 +301,6 @@ App.Pages.Providers = (function () {
 
             // Validate mobile number.
             const mobileNumber = $mobileNumber.val();
-
             if (mobileNumber && !App.Utils.Validation.phone(mobileNumber)) {
                 $mobileNumber.addClass('is-invalid');
                 throw new Error(lang('invalid_phone'));
@@ -319,6 +310,16 @@ App.Pages.Providers = (function () {
             if ($username.attr('already-exists') === 'true') {
                 $username.addClass('is-invalid');
                 throw new Error(lang('username_already_exists'));
+            }
+
+            // Validate max_patients : vide = illimité ; sinon entier >= 1
+            const rawMaxPatients = ($maxPatients.val() || '').trim();
+            if (rawMaxPatients !== '') {
+                const n = parseInt(rawMaxPatients, 10);
+                if (isNaN(n) || n < 1) {
+                    $maxPatients.addClass('is-invalid');
+                    throw new Error(lang('max_patients_invalid') || 'Valeur invalide pour la limite de patients.');
+                }
             }
 
             return true;
@@ -368,8 +369,6 @@ App.Pages.Providers = (function () {
 
     /**
      * Display a provider record into the provider form.
-     *
-     * @param {Object} provider Contains the provider record data.
      */
     function display(provider) {
         $id.val(provider.id);
@@ -388,6 +387,9 @@ App.Pages.Providers = (function () {
         $timezone.val(provider.timezone);
         $ldapDn.val(provider.ldap_dn);
 
+        // Affichage de la limite (clé standardisée côté backend)
+        $maxPatients.val(provider.max_patients ?? '');
+
         $username.val(provider.settings.username);
         $calendarView.val(provider.settings.calendar_view);
         $notifications.prop('checked', Boolean(Number(provider.settings.notifications)));
@@ -398,13 +400,8 @@ App.Pages.Providers = (function () {
             'href': dedicatedUrl,
             'target': '_blank',
             'html': [
-                $('<i/>', {
-                    'class': 'fas fa-link me-2',
-                }),
-
-                $('<span/>', {
-                    'text': lang('booking_link'),
-                }),
+                $('<i/>', { 'class': 'fas fa-link me-2' }),
+                $('<span/>', { 'text': lang('booking_link') }),
             ],
         });
 
@@ -415,10 +412,7 @@ App.Pages.Providers = (function () {
 
         provider.services.forEach((providerServiceId) => {
             const $checkbox = $('#provider-services input[data-id="' + providerServiceId + '"]');
-
-            if (!$checkbox.length) {
-                return;
-            }
+            if (!$checkbox.length) return;
 
             $checkbox.prop('checked', true);
 
@@ -431,13 +425,8 @@ App.Pages.Providers = (function () {
                 'href': dedicatedUrl,
                 'target': '_blank',
                 'html': [
-                    $('<i/>', {
-                        'class': 'fas fa-link me-2',
-                    }),
-
-                    $('<span/>', {
-                        'text': lang('booking_link'),
-                    }),
+                    $('<i/>', { 'class': 'fas fa-link me-2' }),
+                    $('<span/>', { 'text': lang('booking_link') }),
                 ],
             });
 
@@ -460,10 +449,6 @@ App.Pages.Providers = (function () {
 
     /**
      * Filters provider records depending a string keyword.
-     *
-     * @param {string} keyword This is used to filter the provider records of the database.
-     * @param {numeric} selectId Optional, if set, when the function is complete a result row can be set as selected.
-     * @param {bool} show Optional (false), if true the selected record will be also displayed.
      */
     function filter(keyword, selectId = null, show = false) {
         App.Http.Providers.search(keyword, filterLimit).then((response) => {
@@ -476,9 +461,7 @@ App.Pages.Providers = (function () {
 
             if (!response.length) {
                 $filterProviders.find('.results').append(
-                    $('<em/>', {
-                        'text': lang('no_records_found'),
-                    }),
+                    $('<em/>', { 'text': lang('no_records_found') }),
                 );
             } else if (response.length === filterLimit) {
                 $('<button/>', {
@@ -500,32 +483,21 @@ App.Pages.Providers = (function () {
 
     /**
      * Get an provider row html code that is going to be displayed on the filter results list.
-     *
-     * @param {Object} provider Contains the provider record data.
-     *
-     * @return {String} The html code that represents the record on the filter results list.
      */
     function getFilterHtml(provider) {
         const name = provider.first_name + ' ' + provider.last_name;
 
         let info = provider.email;
-
         info = provider.mobile_number ? info + ', ' + provider.mobile_number : info;
-
         info = provider.phone_number ? info + ', ' + provider.phone_number : info;
 
         return $('<div/>', {
             'class': 'provider-row entry',
             'data-id': provider.id,
             'html': [
-                $('<strong/>', {
-                    'text': name,
-                }),
+                $('<strong/>', { 'text': name }),
                 $('<br/>'),
-                $('<small/>', {
-                    'class': 'text-muted',
-                    'text': info,
-                }),
+                $('<small/>', { 'class': 'text-muted', 'text': info }),
                 $('<br/>'),
             ],
         });
@@ -533,9 +505,6 @@ App.Pages.Providers = (function () {
 
     /**
      * Select and display a providers filter result on the form.
-     *
-     * @param {Number} id Record id to be selected.
-     * @param {Boolean} show Optional (false), if true the record will be displayed on the form.
      */
     function select(id, show = false) {
         // Select record in filter results.
@@ -543,11 +512,10 @@ App.Pages.Providers = (function () {
 
         // Display record in form (if display = true).
         if (show) {
-            const provider = filterResults.find((filterResult) => Number(filterResult.id) === Number(id));
-
-            App.Pages.Providers.display(provider);
-
-            $('#edit-provider, #delete-provider').prop('disabled', false);
+            App.Http.Providers.find(id).then((provider) => {
+                App.Pages.Providers.display(provider);
+                $('#edit-provider, #delete-provider').prop('disabled', false);
+            });
         }
     }
 
@@ -576,9 +544,7 @@ App.Pages.Providers = (function () {
                                 'class': 'form-check-input',
                                 'type': 'checkbox',
                                 'data-id': service.id,
-                                'prop': {
-                                    'disabled': true,
-                                },
+                                'prop': { 'disabled': true },
                             }),
                             $('<label/>', {
                                 'class': 'form-check-label',

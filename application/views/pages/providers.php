@@ -231,10 +231,11 @@
                             </div>
                             <div class="form-group">
                                 <label for="interhop-max-patients">
-                                    <?= lang('interhop_max_patients') ?>
-                                    <small class="text-muted">(<?= lang('interhop_max_patients_info') ?>)</small>
+                                    <?= lang('max_patients') ?>
+                                    <small class="text-muted">(<?= lang('max_patients_info') ?>)</small>
                                 </label>
-                                <input type="number" class="form-control" id="interhop-max-patients" placeholder="<?= lang('interhop_max_patients_placeholder') ?>" min="1" />
+                                <input type="number" class="form-control" id="interhop-max-patients"
+                                       placeholder="<?= lang('max_patients_placeholder') ?>" min="1" />
                             </div>
 
                             <?php if (setting('ldap_is_active')): ?>
