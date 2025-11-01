@@ -1,23 +1,5 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
-/* ----------------------------------------------------------------------------
- * Easy!Appointments - Online Appointment Scheduler
- *
- * @package     EasyAppointments
- * @author      A.Tselegidis <alextselegidis@gmail.com>
- * @copyright   Copyright (c) Alex Tselegidis
- * @license     https://opensource.org/licenses/GPL-3.0 - GPLv3
- * @link        https://easyappointments.org
- * @since       v1.5.0
- * ---------------------------------------------------------------------------- */
-
-/**
- * Account controller.
- *
- * Handles current account related operations.
- *
- * @package Controllers
- */
 class Account extends EA_Controller
 {
     public array $allowed_user_fields = [
@@ -35,22 +17,13 @@ class Account extends EA_Controller
         'timezone',
         'language',
         'settings',
-
     ];
 
-    public array $optional_user_fields = [
-        //
-    ];
+    public array $optional_user_fields = [];
 
     public array $allowed_user_setting_fields = ['username', 'password', 'notifications', 'calendar_view'];
+    public array $optional_user_setting_fields = [];
 
-    public array $optional_user_setting_fields = [
-        //
-    ];
-
-    /**
-     * Account constructor.
-     */
     public function __construct()
     {
         parent::__construct();
@@ -82,16 +55,14 @@ class Account extends EA_Controller
             if ($user_id) {
                 abort(403, 'Forbidden');
             }
-
             redirect('login');
-
             return;
         }
 
         $account = $this->users_model->find($user_id);
-        // Charge la limite (table: ea_interhop_providers_limits, FK: provider_id)
-        $limitRow = $this->db
-            ->select('max_patients')
+
+        // Charger la limite dédiée (table: ea_interhop_providers_limits, FK: provider_id)
+        $limitRow = $this->db->select('max_patients')
             ->from('ea_interhop_providers_limits')
             ->where('provider_id', $user_id)
             ->get()
@@ -101,6 +72,7 @@ class Account extends EA_Controller
 
         script_vars([
             'account' => $account,
+            'user_id' => $user_id,
         ]);
 
         html_vars([
@@ -123,73 +95,96 @@ class Account extends EA_Controller
                 throw new RuntimeException('You do not have the required permissions for this task.');
             }
 
-            // 1) Récupérer payload et attacher l'id
-            $payload = request('account') ?: [];
-            $payload['id'] = session('user_id');
+            $userId = (int) session('user_id');
 
-            // 2) Lire l'état actuel en base (assure qu'on a les champs requis)
-            $current = $this->users_model->find($payload['id']);
+            // --------- [A] Lecture robuste du payload minimal ---------
+            // 1) payload EA (peut être vide selon la sérialisation)
+            $payload = request('account');
+            if (empty($payload)) {
+                $payload = $_POST['account'] ?? [];
+                if (empty($payload)) {
+                    $raw = file_get_contents('php://input');
+                    if ($raw) {
+                        $json = json_decode($raw, true);
+                        if (is_array($json) && isset($json['account'])) {
+                            $payload = $json['account'];
+                        } elseif (is_array($json)) {
+                            $payload = $json;
+                        }
+                    }
+                }
+            }
+            $payload['id'] = $userId;
+
+            // 2) Lire la limite directement depuis le POST (toutes formes)
+            $val = $this->input->post('account[interhop_max_patients]');
+            if ($val === null) {
+                if (isset($_POST['account']['interhop_max_patients'])) {
+                    $val = $_POST['account']['interhop_max_patients'];
+                } elseif (($tmp = $this->input->post('interhop_max_patients')) !== null) {
+                    $val = $tmp;
+                } else {
+                    $rawBody = file_get_contents('php://input');
+                    if ($rawBody) {
+                        $jb = json_decode($rawBody, true);
+                        if (is_array($jb)) {
+                            if (isset($jb['account']['interhop_max_patients'])) {
+                                $val = $jb['account']['interhop_max_patients'];
+                            } elseif (isset($jb['interhop_max_patients'])) {
+                                $val = $jb['interhop_max_patients'];
+                            }
+                        } else {
+                            parse_str($rawBody, $fb);
+                            if (isset($fb['account']['interhop_max_patients'])) {
+                                $val = $fb['account']['interhop_max_patients'];
+                            } elseif (isset($fb['interhop_max_patients'])) {
+                                $val = $fb['interhop_max_patients'];
+                            }
+                        }
+                    }
+                }
+            }
+            $interhopMax = ($val === '' || $val === 'null' || $val === null) ? null : (int) $val;
+
+            // --------- [B] Upsert DÉDIÉ (avant la sauvegarde EA) ---------
+            // NOTE: Feature 22 – limite de patients par soignant (InterHop)
+            // Upsert séparé du flux EA pour éviter validation bloquante
+            // Reproduit le comportement "ça s'insère même si le reste échoue"
+            if ($interhopMax === null) {
+                // illimité => supprimer l’éventuelle ligne
+                $this->db->delete('ea_interhop_providers_limits', ['provider_id' => $userId]);
+            } else {
+                // upsert propre
+                $sql = 'INSERT INTO ea_interhop_providers_limits (provider_id, max_patients)
+                        VALUES (?, ?)
+                        ON DUPLICATE KEY UPDATE max_patients = VALUES(max_patients)';
+                $this->db->query($sql, [$userId, $interhopMax]);
+            }
+
+            // --------- [C] Sauvegarde EA standard (ne touche qu'aux champs envoyés) ---------
+            // Fusion avec l’état courant pour éviter "Not all required fields..."
+            $current = $this->users_model->find($userId);
             if (!$current) {
                 throw new RuntimeException('User not found.');
             }
-
-            // 3) Normaliser et extraire la limite (mapping frontend -> DB)
-            $interhopMax = $payload['interhop_max_patients'] ?? null;
-            if ($interhopMax === '' || $interhopMax === 'null') {
-                $interhopMax = null; // vide = illimité
-            }
-
-            // 4) Fusionner l'état actuel avec le payload (le payload écrase l'existant)
-            //    -> On évite "Not all required fields" si le client oublie un champ
             $account = array_replace_recursive($current, $payload);
 
-            // 5) Filtrages "only/optional"
-            // IMPORTANT: $allowed_user_fields doit contenir 'settings' et NE PAS contenir 'interhop_max_patients'
             $this->users_model->only($account, $this->allowed_user_fields);
             $this->users_model->optional($account, $this->optional_user_fields);
 
             if (!isset($account['settings']) || !is_array($account['settings'])) {
                 $account['settings'] = [];
             }
-
             $this->users_model->only($account['settings'], $this->allowed_user_setting_fields);
             $this->users_model->optional($account['settings'], $this->optional_user_setting_fields);
 
-            // 6) Mot de passe vide => ne pas modifier
             if (empty($account['settings']['password'])) {
                 unset($account['settings']['password']);
             }
 
-            // 7) Sauvegarde user + settings
             $this->users_model->save($account);
 
-            // 8) Upsert de la limite (FK: provider_id, colonne: max_patients)
-            $userId = $payload['id'];
-
-            if ($interhopMax === null) {
-                // illimité => supprimer la ligne si elle existe
-                $this->db->delete('ea_interhop_providers_limits', ['provider_id' => $userId]);
-            } else {
-                $exists = $this->db->select('provider_id')
-                        ->from('ea_interhop_providers_limits')
-                        ->where('provider_id', $userId)
-                        ->get()->num_rows() > 0;
-
-                if ($exists) {
-                    $this->db->update(
-                        'ea_interhop_providers_limits',
-                        ['max_patients' => $interhopMax],
-                        ['provider_id' => $userId]
-                    );
-                } else {
-                    $this->db->insert('ea_interhop_providers_limits', [
-                        'provider_id'  => $userId,
-                        'max_patients' => $interhopMax,
-                    ]);
-                }
-            }
-
-            // 9) Rafraîchir la session
+            // --------- [D] Rafraîchit la session & réponse ---------
             session([
                 'user_email' => $account['email'] ?? session('user_email'),
                 'username'   => $account['settings']['username'] ?? session('username'),
@@ -203,22 +198,15 @@ class Account extends EA_Controller
         }
     }
 
-
-    /**
-     * Make sure the username is valid and unique in the database.
-     */
     public function validate_username(): void
     {
         try {
             $username = request('username');
-
             $user_id = request('user_id');
 
             $is_valid = $this->users_model->validate_username($username, $user_id);
 
-            json_response([
-                'is_valid' => $is_valid,
-            ]);
+            json_response(['is_valid' => $is_valid]);
         } catch (Throwable $e) {
             json_exception($e);
         }

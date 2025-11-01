@@ -197,6 +197,11 @@
 
 <?php section('scripts'); ?>
 
+<script>
+    window.App = window.App || {};
+    window.App.Vars = <?= json_encode(vars()) ?>;
+</script>
+
 <script src="<?= asset_url('assets/js/http/account_http_client.js') ?>"></script>
 <script src="<?= asset_url('assets/js/pages/account.js') ?>"></script>
 
