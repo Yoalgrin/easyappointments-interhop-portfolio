@@ -7,6 +7,7 @@ coverage/
 # PHP / vendor
 vendor/
 composer.lock
+config.php
 
 # IDE / OS
 .vscode/
