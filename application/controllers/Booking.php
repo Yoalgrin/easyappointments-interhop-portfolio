@@ -1036,22 +1036,37 @@ class Booking extends EA_Controller
 
         return $provider_list;
     }
+    /**
+     * Lit une variable d’environnement booléenne avec des alias classiques.
+     * Ex: '1', 'true', 'on', 'yes' => true (insensible à la casse).
+     */
+
     private function env_bool(string $name, bool $default = false): bool
     {
         $v = getenv($name);
         if ($v === false) return $default;
+        // Normalisation en minuscule + test sur un petit set de valeurs "truthy".
         return in_array(strtolower((string)$v), ['1','true','on','yes'], true);
     }
-
+    /**
+     * Construit et envoie l’e-mail de confirmation avec lien signé par token.
+     * - $token est inséré dans l’URL /booking/confirm?token=...
+     * - L’email est envoyé en HTML (vue dédiée 'emails/confirm_appointment').
+     */
     private function _sendConfirmationEmail(string $email, string $token): bool
     {
+        // Base URL applicative (ENV d’abord, fallback base_url()).
         $appUrl   = rtrim(getenv('APP_URL') ?: base_url(), '/');
+        // Lien de confirmation sécurisé côté serveur (le token sera validé au GET).
         $link     = $appUrl . '/booking/confirm?token=' . urlencode($token);
+        // Expéditeurs avec fallback si les variables d’environnement sont absentes.
         $fromMail = env_pick(['INTERHOP_EA_EMAIL_FROM','EA_EMAIL_FROM'], 'no-reply@example.local');
         $fromName = env_pick(['INTERHOP_EA_EMAIL_FROM_NAME','EA_EMAIL_FROM_NAME'], 'Prise de RDV InterHop');
 
+        // Corps HTML : Injection du lien dans la vue dédiée.
         $body = $this->load->view('emails/confirm_appointment', ['link' => $link], true);
 
+        // Envoi via la librairie Email de CodeIgniter.
         $this->load->library('email');
         $this->email->clear(true);
         $this->email->from($fromMail, $fromName);
@@ -1060,6 +1075,7 @@ class Booking extends EA_Controller
         $this->email->set_mailtype('html');
         $this->email->message($body);
 
+        // Log minimaliste pour le suivi (succès/échec).
         $ok = $this->email->send();
         if (!$ok) {
             $dbg = $this->email->print_debugger(['headers','subject','body']);
@@ -1070,51 +1086,71 @@ class Booking extends EA_Controller
         return $ok;
     }
 
+    /**
+     * Rend une vue simple qui affiche le résultat utilisateur :
+     * 'invalid' | 'expired' | 'confirmed' | 'cancelled'
+     */
     private function _renderConfirmResult(string $state): void
     {
         $this->load->view('booking/confirm_result', ['state' => $state]);
     }
-
+    /**
+     * Endpoint de confirmation : valide le token, confirme le rendez-vous,
+     * invalide le token (one-shot) et déclenche la chaîne de notifications.
+     */
     public function confirm(): void
     {
         try {
+            // 1) Récupération du token (protégé XSS via $this->input->get(..., true))
             $token = $this->input->get('token', true);
             if (!$token) { $this->_renderConfirmResult('invalid'); return; }
 
+            // Préfixes pour cibler les tables réelles (respecte dbprefix).
             $tbl     = $this->db->dbprefix('appointment_email_confirmations'); // ea_appointment_email_confirmations
             $apptTbl = $this->db->dbprefix('appointments');                    // ea_appointments
 
+            // 2) Jointure : Récupèration du token + le rendez-vous associé (id + FK utiles).
             $conf = $this->db->select('aec.*, a.id AS appt_id, a.id_users_provider, a.id_users_customer, a.id_services')
                 ->from("$tbl aec")
                 ->join("$apptTbl a", 'a.id = aec.appointment_id')
                 ->where('aec.token', $token)
                 ->get()->row_array();
 
+            // Cas d’erreur : token absent / inconnu.
             if (!$conf) { $this->_renderConfirmResult('invalid'); return; }
+
+            // Cas déjà traité : confirmed | cancelled => on renvoie l’état tel quel.
             if (in_array($conf['status'], ['confirmed','cancelled'], true)) {
                 $this->_renderConfirmResult($conf['status']); return;
             }
-
+            // 3) Vérification d’expiration (300 secondes après émission (paramètres dans le .env)).
             $now = new DateTime();
             if ($now > new DateTime($conf['expires_at'])) {
                 $this->db->where('id', $conf['id'])->update($tbl, ['status' => 'expired']);
                 $this->_renderConfirmResult('expired'); return;
             }
 
-            // Confirme + publie atomiquement
+            // 4) Section critique : confirmation atomique via transaction DB.
+            //    "premier arrivé, premier servi" sur un créneau concurrent.
             $this->db->trans_start();
+
+            // 4.1) Invalider le token (one-shot) + tracer l’horodatage.
             $this->db->where('id', $conf['id'])->update($tbl, [
                 'status'       => 'confirmed',
                 'confirmed_at' => $now->format('Y-m-d H:i:s'),
             ]);
+            // 4.2) Marquer le rendez-vous comme confirmé côté métier.
             $this->db->where('id', (int)$conf['appt_id'])->update($apptTbl, ['status' => 'approved']);
+
+            // Validation de la transaction (ou rollback si une étape échoue).
             $this->db->trans_complete();
 
             if ($this->db->trans_status() === false) {
                 $this->_renderConfirmResult('invalid'); return;
             }
 
-            // Notifications après confirmation
+            // 5) Notifications & intégrations **après** confirmation réussie :
+            //    - Synchronisation, envoi des notifications, webhooks, etc.
             $appointment = $this->appointments_model->find((int)$conf['appt_id']);
             $provider    = $this->providers_model->find($appointment['id_users_provider']);
             $service     = $this->services_model->find($appointment['id_services']);
@@ -1129,13 +1165,16 @@ class Booking extends EA_Controller
                 'date_format'   => setting('date_format'),
                 'time_format'   => setting('time_format'),
             ];
-
+            // Déclenchements applicatifs (ordre logique : sync → notify → webhook).
             $this->synchronization->sync_appointment_saved($appointment, $service, $provider, $customer, $settings);
             $this->notifications->notify_appointment_saved($appointment, $service, $provider, $customer, $settings, false);
             $this->webhooks_client->trigger(WEBHOOK_APPOINTMENT_SAVE, $appointment);
 
+            // 6) Retour UI "succès".
             $this->_renderConfirmResult('confirmed');
         } catch (Throwable $e) {
+            // Sécurité : on ne révèle pas l’exception en front.
+            // Log côté serveur si besoin, rendu "invalid" côté client.
             $this->_renderConfirmResult('invalid');
         }
     }

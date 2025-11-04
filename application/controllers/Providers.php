@@ -39,7 +39,6 @@ class Providers extends EA_Controller
         'id_roles',
         'settings',
         'services',
-        // NOTE: pas de 'max_patients' ici, il est géré dans une table dédiée.
     ];
 
     public array $optional_provider_fields = [
@@ -165,7 +164,7 @@ class Providers extends EA_Controller
 
             $input = request('provider');
 
-            // Extraire max_patients AVANT filtrage
+            // Extraire max_patients avant le filtrage.
             $hasKey = array_key_exists('max_patients', $input);
             $limit = null;
             if ($hasKey) {
@@ -175,7 +174,8 @@ class Providers extends EA_Controller
                 }
             }
 
-            // Construire le payload principal SANS max_patients
+            // On construit le payload principal du soignant en EXCLUANT "max_patients"
+            // (la limite vit dans une table dédiée ; on évite toute confusion de schéma).
             $provider = $input;
             unset($provider['max_patients']);
 
@@ -186,7 +186,7 @@ class Providers extends EA_Controller
 
             $provider_id = $this->providers_model->save($provider);
 
-            // Upsert seulement si la clé était envoyée
+            // Mettre à jour/insérer la limite uniquement si 'max_patients' est présent dans l’entrée.
             if ($hasKey) {
                 $this->providers_model->save_max_patients((int)$provider_id, $limit);
             }
@@ -215,7 +215,8 @@ class Providers extends EA_Controller
             $provider_id = request('provider_id');
 
             $provider = $this->providers_model->find($provider_id);
-            // Enrichir avec la limite depuis la table dédiée
+            // Injecte `max_patients` depuis la table `ea_interhop_providers_limits` (colonne `max_patients`),
+            // considérée comme source de vérité ; renvoie null si aucune ligne n'existe pour ce soignant.
             $provider['max_patients'] = $this->providers_model->get_max_patients((int)$provider_id);
 
             json_response($provider);
@@ -225,7 +226,24 @@ class Providers extends EA_Controller
     }
 
     /**
-     * Update a provider.
+     * Met à jour un soignant (partial update) et, si demandé, sa limite de patients.
+     *
+     * Contrat d’entrée (JSON "provider"):
+     * - Champs standards du soignant (+ settings) : filtrés par listes allow/optional.
+     * - Optionnel: "max_patients"
+     *      - Si la clé n’est PAS présente : aucune modification de la limite.
+     *      - Si la clé est présente avec null ou "" : supprime la limite (réglée à null).
+     *      - Si la clé est présente avec une valeur numérique : stocke int>=1 (normalisé).
+     *
+     * Effets de bord :
+     * - Persiste le soignant (table principale).
+     * - Met à jour/supprime la limite dans la table dédiée UNIQUEMENT si la clé était envoyée.
+     * - Déclenche un webhook WEBHOOK_PROVIDER_SAVE avec l’état complet (incluant max_patients).
+     *
+     * Remarques :
+     * - L’ordre est important : on sauvegarde le soignant, puis on applique la limite, puis on recharge
+     *   l’état complet pour le webhook (source de vérité).
+     * - Toute exception renvoie un JSON d’erreur standardisé via json_exception().
      */
     public function update(): void
     {
@@ -234,10 +252,12 @@ class Providers extends EA_Controller
 
             $input = request('provider');
 
-            // Garde : savoir si la clé est présente dans la requête
+            // Indique si l’appelant souhaite explicitement toucher à "max_patients" (partial update).
             $hasKey = array_key_exists('max_patients', $input);
 
-            // Normalisation uniquement si la clé est présente
+            // Normalisation de la limite UNIQUEMENT si la clé est présente :
+            // - null ou chaîne vide => pas de limite (null)
+            // - sinon => cast int et clamp à [1, +inf[
             $limit = null;
             if ($hasKey) {
                 $limitRaw = $input['max_patients'];
@@ -246,28 +266,36 @@ class Providers extends EA_Controller
                 }
             }
 
-            // Payload principal SANS max_patients
+            // On construit le payload principal du soignant en EXCLUANT "max_patients"
+            // (la limite vit dans une table dédiée ; on évite toute confusion de schéma).
             $provider = $input;
             unset($provider['max_patients']);
 
+            // Filtrage strict : seules les clés autorisées passent (sécurité + robustesse).
             $this->providers_model->only($provider, $this->allowed_provider_fields);
             $this->providers_model->only($provider['settings'], $this->allowed_provider_setting_fields);
             $this->providers_model->optional($provider, $this->optional_provider_fields);
             $this->providers_model->optional($provider['settings'], $this->optional_provider_setting_fields);
 
+            // Sauvegarde du soignant (insert ou update). Retourne l’ID.
             $provider_id = $this->providers_model->save($provider);
 
-            // IMPORTANT : ne toucher à la table que si la clé était réellement envoyée
+            // IMPORTANT : ne touche à la table des limites que si l’API a explicitement envoyé la clé.
+            // - $limit === null => supprime la limite (aucune contrainte)
+            // - $limit >= 1     => définit/écrase la limite
             if ($hasKey) {
                 $this->providers_model->save_max_patients((int)$provider_id, $limit);
             }
-
+            // Recharge l’état complet côté "source de vérité" pour le webhook (données cohérentes).
             $providerFull = $this->providers_model->find($provider_id);
             $providerFull['max_patients'] = $this->providers_model->get_max_patients((int)$provider_id);
+            // Notifie les intégrations externes de la mise à jour.
             $this->webhooks_client->trigger(WEBHOOK_PROVIDER_SAVE, $providerFull);
 
+            // Réponse minimaliste et stable pour le front.
             json_response(['success' => true, 'id' => $provider_id]);
         } catch (Throwable $e) {
+            // Gestion homogène des erreurs (journalisation + payload JSON standard).
             json_exception($e);
         }
     }

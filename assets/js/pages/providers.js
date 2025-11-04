@@ -15,7 +15,10 @@
  * This module implements the functionality of the providers page.
  */
 App.Pages.Providers = (function () {
-    const $maxPatients = $('#interhop-max-patients'); // ID HTML conservé
+    /* Champ "Limite de patients" (UI admin).
+    NOTE : ID conservé 'interhop-max-patients' (hérité du front).
+    Côté backend (Providers.php), la clé de payload attendue est *max_patients*.*/
+    const $maxPatients = $('#interhop-max-patients');
     const $providers = $('#providers');
     const $id = $('#id');
     const $firstName = $('#first-name');
@@ -185,7 +188,7 @@ App.Pages.Providers = (function () {
                 }
             });
 
-            // max_patients : '' = illimité ; sinon entier >= 1
+            // Vérifie 'max_patients' : vide = illimité ; sinon entier >= 1
             const rawMax = ($maxPatients.val() || '').trim();
             provider.max_patients = rawMax === '' ? '' : String(Math.max(1, parseInt(rawMax, 10)));
 

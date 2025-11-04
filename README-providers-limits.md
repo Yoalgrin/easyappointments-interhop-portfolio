@@ -133,12 +133,12 @@ Créer `assets/js/backend/booking-override.js` et l’injecter via le hook (post
 
 ## ✍️ Auteur et encadrement
 
-| Rôle | Nom |
-|------|------|
-| 👨‍💻 Développement & intégration | **Gabriel [Nom]** |
-| 🧑‍🏫 Encadrement | *[Nom du CdP]* |
+| Rôle | Nom                                  |
+|------|--------------------------------------|
+| 👨‍💻 Développement & intégration | **Gabriel [Nom]**                    |
+| 🧑‍🏫 Encadrement | *Adrien PARROT*                      |
 | 🏢 Structure | InterHop / EasyAppointments InterHop |
-| 📅 Période | Stage 2025 — Feature 22 |
+| 📅 Période | Stage du 22/10/2025 au 14/11/2025    |
 
 ---
 

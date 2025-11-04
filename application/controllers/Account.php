@@ -147,11 +147,12 @@ class Account extends EA_Controller
             $interhopMax = ($val === '' || $val === 'null' || $val === null) ? null : (int) $val;
 
             // --------- [B] Upsert DÉDIÉ (avant la sauvegarde EA) ---------
-            // NOTE: Feature 22 – limite de patients par soignant (InterHop)
-            // Upsert séparé du flux EA pour éviter validation bloquante
-            // Reproduit le comportement "ça s'insère même si le reste échoue"
+            // NOTE: Feature 22 – limite de patient(e)s par soignant(e) (InterHop).
+            // Upsert séparé du flux EA pour éviter validation bloquante.
+            // Permet l’insertion même en cas d’échec des opérations suivantes (à valider).
+
             if ($interhopMax === null) {
-                // illimité => supprimer l’éventuelle ligne
+                // Si le champ est NULL (illimité), la ligne correspondante est supprimée de la base.
                 $this->db->delete('ea_interhop_providers_limits', ['provider_id' => $userId]);
             } else {
                 // upsert propre

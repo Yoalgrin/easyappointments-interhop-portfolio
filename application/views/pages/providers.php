@@ -241,7 +241,7 @@
                                     id="interhop-max-patients"
                                     name="interhop_max_patients"
                                     placeholder="<?= lang('max_patients_placeholder') ?>"
-                                    min="0"
+                                    min="1" step="1"
                                     value="<?= isset($provider['interhop_max_patients']) && $provider['interhop_max_patients'] !== null
                                         ? html_escape((string)$provider['interhop_max_patients'])
                                         : '' ?>"
