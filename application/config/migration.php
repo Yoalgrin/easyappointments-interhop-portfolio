@@ -10,7 +10,7 @@
 |
 */
 $config['migration_enabled'] = TRUE;
-
+$config['migration_type']    = 'sequential';
 /*
 |--------------------------------------------------------------------------
 | Migrations version
@@ -21,7 +21,7 @@ $config['migration_enabled'] = TRUE;
 | be upgraded / downgraded to.
 |
 */
-$config['migration_version'] = 0;
+$config['migration_version'] = 62;
 
 /*
 |--------------------------------------------------------------------------
