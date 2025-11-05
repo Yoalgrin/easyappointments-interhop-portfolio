@@ -23,6 +23,48 @@ $hook['post_controller'][] = [
     'filepath' => 'hooks',
     'params'   => [],
 ];
+// application/config/hooks.php (exemples)
+$hook['post_controller_constructor'][] = [
+    'class'    => 'InterhopTranslationHook',
+    'function' => 'inject',
+    'filename' => 'InterhopTranslationHook.php',
+    'filepath' => 'hooks',
+];
+
+$hook['post_controller'][] = [
+    'class'    => 'InterhopProvidersLimitSaveHook',
+    'function' => 'afterAccountSave',
+    'filename' => 'InterhopProvidersLimitSaveHook.php',
+    'filepath' => 'hooks',
+];
+
+$hook['post_controller'][] = [
+    'class'    => 'InterhopProvidersLimitSaveHook',
+    'function' => 'afterProvidersSave',
+    'filename' => 'InterhopProvidersLimitSaveHook.php',
+    'filepath' => 'hooks',
+];
+
+// Pour le hook d’enrichissement de payload
+$hook['post_controller_constructor'][] = [
+    'class'    => 'InterhopAccount',
+    'function' => 'augment_account_view',
+    'filename' => 'InterhopAccount.php',
+    'filepath' => 'hooks',
+];
+$hook['post_controller_constructor'][] = [
+    'class'    => 'InterhopAccount',
+    'function' => 'augment_provider_view',
+    'filename' => 'InterhopAccount.php',
+    'filepath' => 'hooks',
+];
+$hook['display_override'][] = [
+    'class'    => 'InterhopAssetsHook',
+    'function' => 'injectOverrides',
+    'filename' => 'InterhopAssetsHook.php',
+    'filepath' => 'hooks',
+];
+
 
 /* End of file hooks.php */
 /* Location: ./application/config/hooks.php */
