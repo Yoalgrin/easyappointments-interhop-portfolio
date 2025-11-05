@@ -163,17 +163,6 @@
                                         <?= lang('options') ?>
                                     </label>
                                 </div>
-                                <div class="mb-3" id="interhop-max-patients-wrap">
-                                    <label class="form-label" for="interhop-max-patients">
-                                        Limite de patients
-                                    </label>
-                                    <input type="number"
-                                           id="interhop-max-patients"
-                                           name="interhop_max_patients"
-                                           class="form-control"
-                                           min="0"
-                                           placeholder="ex : 20 (laisser vide = illimité)">
-                                </div>
 
                                 <div class="border rounded mb-3 p-3">
                                     <div class="form-check form-switch">

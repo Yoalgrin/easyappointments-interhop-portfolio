@@ -15,7 +15,6 @@
  * This module implements the functionality of the providers page.
  */
 App.Pages.Providers = (function () {
-    const $maxPatients = $('#interhop-max-patients'); // ID HTML conservé
     const $providers = $('#providers');
     const $id = $('#id');
     const $firstName = $('#first-name');
@@ -294,6 +293,7 @@ App.Pages.Providers = (function () {
 
             // Validate phone number.
             const phoneNumber = $phoneNumber.val();
+
             if (phoneNumber && !App.Utils.Validation.phone(phoneNumber)) {
                 $phoneNumber.addClass('is-invalid');
                 throw new Error(lang('invalid_phone'));
@@ -301,6 +301,7 @@ App.Pages.Providers = (function () {
 
             // Validate mobile number.
             const mobileNumber = $mobileNumber.val();
+
             if (mobileNumber && !App.Utils.Validation.phone(mobileNumber)) {
                 $mobileNumber.addClass('is-invalid');
                 throw new Error(lang('invalid_phone'));
@@ -310,16 +311,6 @@ App.Pages.Providers = (function () {
             if ($username.attr('already-exists') === 'true') {
                 $username.addClass('is-invalid');
                 throw new Error(lang('username_already_exists'));
-            }
-
-            // Validate max_patients : vide = illimité ; sinon entier >= 1
-            const rawMaxPatients = ($maxPatients.val() || '').trim();
-            if (rawMaxPatients !== '') {
-                const n = parseInt(rawMaxPatients, 10);
-                if (isNaN(n) || n < 1) {
-                    $maxPatients.addClass('is-invalid');
-                    throw new Error(lang('max_patients_invalid') || 'Valeur invalide pour la limite de patients.');
-                }
             }
 
             return true;

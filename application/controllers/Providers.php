@@ -161,47 +161,34 @@ class Providers extends EA_Controller
     public function store(): void
     {
         try {
-            if (cannot('add', PRIV_USERS)) { abort(403, 'Forbidden'); }
-
-            $input = request('provider');
-
-            // Extraire max_patients AVANT filtrage
-            $hasKey = array_key_exists('max_patients', $input);
-            $limit = null;
-            if ($hasKey) {
-                $limitRaw = $input['max_patients'];
-                if ($limitRaw !== null && $limitRaw !== '') {
-                    $limit = max(1, (int)$limitRaw);
-                }
+            if (cannot('add', PRIV_USERS)) {
+                abort(403, 'Forbidden');
             }
 
-            // Construire le payload principal SANS max_patients
-            $provider = $input;
-            unset($provider['max_patients']);
+            $provider = request('provider');
 
             $this->providers_model->only($provider, $this->allowed_provider_fields);
+
             $this->providers_model->only($provider['settings'], $this->allowed_provider_setting_fields);
+
             $this->providers_model->optional($provider, $this->optional_provider_fields);
+
             $this->providers_model->optional($provider['settings'], $this->optional_provider_setting_fields);
 
             $provider_id = $this->providers_model->save($provider);
 
-            // Upsert seulement si la clé était envoyée
-            if ($hasKey) {
-                $this->providers_model->save_max_patients((int)$provider_id, $limit);
-            }
+            $provider = $this->providers_model->find($provider_id);
 
-            $providerFull = $this->providers_model->find($provider_id);
-            $providerFull['max_patients'] = $this->providers_model->get_max_patients((int)$provider_id);
-            $this->webhooks_client->trigger(WEBHOOK_PROVIDER_SAVE, $providerFull);
+            $this->webhooks_client->trigger(WEBHOOK_PROVIDER_SAVE, $provider);
 
-            json_response(['success' => true, 'id' => $provider_id]);
+            json_response([
+                'success' => true,
+                'id' => $provider_id,
+            ]);
         } catch (Throwable $e) {
             json_exception($e);
         }
     }
-
-
     /**
      * Find a provider.
      */
@@ -215,8 +202,6 @@ class Providers extends EA_Controller
             $provider_id = request('provider_id');
 
             $provider = $this->providers_model->find($provider_id);
-            // Enrichir avec la limite depuis la table dédiée
-            $provider['max_patients'] = $this->providers_model->get_max_patients((int)$provider_id);
 
             json_response($provider);
         } catch (Throwable $e) {
@@ -230,48 +215,34 @@ class Providers extends EA_Controller
     public function update(): void
     {
         try {
-            if (cannot('edit', PRIV_USERS)) { abort(403, 'Forbidden'); }
-
-            $input = request('provider');
-
-            // Garde : savoir si la clé est présente dans la requête
-            $hasKey = array_key_exists('max_patients', $input);
-
-            // Normalisation uniquement si la clé est présente
-            $limit = null;
-            if ($hasKey) {
-                $limitRaw = $input['max_patients'];
-                if ($limitRaw !== null && $limitRaw !== '') {
-                    $limit = max(1, (int)$limitRaw);
-                }
+            if (cannot('edit', PRIV_USERS)) {
+                abort(403, 'Forbidden');
             }
 
-            // Payload principal SANS max_patients
-            $provider = $input;
-            unset($provider['max_patients']);
+            $provider = request('provider');
 
             $this->providers_model->only($provider, $this->allowed_provider_fields);
+
             $this->providers_model->only($provider['settings'], $this->allowed_provider_setting_fields);
+
             $this->providers_model->optional($provider, $this->optional_provider_fields);
+
             $this->providers_model->optional($provider['settings'], $this->optional_provider_setting_fields);
 
             $provider_id = $this->providers_model->save($provider);
 
-            // IMPORTANT : ne toucher à la table que si la clé était réellement envoyée
-            if ($hasKey) {
-                $this->providers_model->save_max_patients((int)$provider_id, $limit);
-            }
+            $provider = $this->providers_model->find($provider_id);
 
-            $providerFull = $this->providers_model->find($provider_id);
-            $providerFull['max_patients'] = $this->providers_model->get_max_patients((int)$provider_id);
-            $this->webhooks_client->trigger(WEBHOOK_PROVIDER_SAVE, $providerFull);
+            $this->webhooks_client->trigger(WEBHOOK_PROVIDER_SAVE, $provider);
 
-            json_response(['success' => true, 'id' => $provider_id]);
+            json_response([
+                'success' => true,
+                'id' => $provider_id,
+            ]);
         } catch (Throwable $e) {
             json_exception($e);
         }
     }
-
 
     /**
      * Remove a provider.
