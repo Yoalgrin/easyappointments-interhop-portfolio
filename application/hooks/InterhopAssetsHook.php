@@ -3,57 +3,103 @@
 class InterhopAssetsHook
 {
     /**
-     * Injecte les overrides InterHop juste avant </body> sans modifier le core.
-     * À brancher sur "display_override" (CI3) ou "post_controller" si pas d'override d'affichage.
+     * Injecte scripts InterHop juste avant </body> (display_override).
+     * RÈGLE IMPORTANTE: en display_override il faut TOUJOURS echo la sortie finale.
      */
+
     public function injectOverrides(): void
     {
         $CI = &get_instance();
 
-        // Feature flag (optionnel)
-        if ($CI->config->load('interhop', true)) {
-            $enabled = $CI->config->item('interhop_provider_limits_enabled', 'interhop');
-            if ($enabled === false) return;
+        // Récupère le HTML déjà rendu par CI
+        $output = $CI->output->get_output();
+        if (!is_string($output)) { $output = ''; }
+
+        // S’assurer d’avoir base_url()
+        if (!function_exists('base_url')) {
+            $CI->load->helper('url');
         }
 
-        // On cible uniquement les pages backend utiles
-        $class = $CI->router->class;   // 'Account', 'Providers', ...
-        if (!in_array($class, ['Account', 'Providers'], true)) {
+        // Feature flag optionnel: même si désactivé, on doit QUAND MÊME afficher $output !
+        $featureEnabled = true;
+        if ($CI->config->load('interhop', true, true)) {
+            $tmp = $CI->config->item('interhop_provider_limits_enabled', 'interhop');
+            if ($tmp === false) { $featureEnabled = false; }
+        }
+
+        // Si on ne doit rien injecter, on ECHO le rendu tel quel et on sort proprement
+        if ($featureEnabled === false) {
+            echo $output;
             return;
         }
 
-        // Construire les balises <script> nécessaires
-        $CI->load->helper('url'); // pour base_url()
+        // Router pour cibler la page
+        $class  = (string)($CI->router->class ?? '');
+        // $method = (string)($CI->router->method ?? '');
+
+        // 0) INJECTION INLINE – crée window.raw si absent (garanti, sans dépendances)
+        $inlineRawShim = <<<HTML
+<script>
+// [InterHop] inline raw shim (garanti)
+(function(){
+  try {
+    if (!('raw' in window)) {
+      Object.defineProperty(window, 'raw', { configurable: true, writable: true, value: {} });
+    } else if (window.raw == null || typeof window.raw !== 'object') {
+      window.raw = {};
+    }
+  } catch(_) { window.raw = {}; }
+})();
+</script>
+HTML;
+
         $tags = [];
+        $tags[] = $inlineRawShim;
 
-        if ($class === 'Account') {
-            $path = FCPATH . 'assets/js/pages/interhop-account-override.min.js';
-            if (is_file($path)) {
-                $tags[] = '<script src="' . base_url('assets/js/pages/interhop-account-override.min.js') . '"></script>';
-            }
-        }
 
-        if ($class === 'Providers') {
-            $path = FCPATH . 'assets/js/pages/interhop-providers-override.min.js';
-            if (is_file($path)) {
-                $tags[] = '<script src="' . base_url('assets/js/pages/interhop-providers-override.min.js') . '"></script>';
-            }
-        }
 
-        if (!$tags) return;
-
-        // Récupérer la sortie et injecter avant </body>
-        $output = $CI->output->get_output();
-        $injection = "\n" . implode("\n", $tags) . "\n";
-
-        if (stripos($output, '</body>') !== false) {
-            $output = preg_replace('~</body>~i', $injection . '</body>', $output, 1);
+        // 1) (optionnel) shim fichier
+        $shimPath = FCPATH . 'assets/js/pages/interhop-raw-shim.js';
+        if (is_file($shimPath)) {
+            $tags[] = '<script src="' . base_url('assets/js/pages/interhop-raw-shim.js') . '?v=' . rawurlencode($this->assetStamp($shimPath)) . '"></script>';
         } else {
-            // fallback: append à la fin si pas de </body>
-            $output .= $injection;
+            $tags[] = '<script>console.warn("[InterHop] interhop-raw-shim.js introuvable (inline shim suffisant)");</script>';
         }
 
-        $CI->output->set_output($output);
-        // Important: ne pas appeler $CI->output->_display() ici, CI s’en charge après le hook.
+        // 2) Override Account uniquement si on est sur le contrôleur Account
+        if (strcasecmp($class, 'Account') === 0) {
+            $accPath = FCPATH . 'assets/js/pages/interhop-account-override.js';
+            if (is_file($accPath)) {
+                $tags[] = '<script src="' . base_url('assets/js/pages/interhop-account-override.js') . '?v=' . rawurlencode($this->assetStamp($accPath)) . '"></script>';
+                $tags[] = '<script>console.debug("[InterHop] account override injecté");</script>';
+                // 👇 AJOUT ICI : trace spécifique pour Account
+                $tags[] = '<script>console.debug("[IH] assets injectés pour Account");</script>';
+            } else {
+                $tags[] = '<script>console.warn("[InterHop] interhop-account-override.js introuvable");</script>';
+            }
+        }
+
+
+        // 3) Injecter avant </body> (sinon à la fin)
+        $final = $this->injectBeforeClosingBody($output, implode("\n", $tags));
+
+        // TOUJOURS ECHO le HTML final en display_override
+        echo $final;
+        return;
+    }
+
+    private function assetStamp(string $path): string
+    {
+        $t = @filemtime($path);
+        return $t ? (string)$t : (string)time();
+    }
+
+    private function injectBeforeClosingBody(string $html, string $insertion): string
+    {
+        $pos = strripos($html, '</body>');
+        if ($pos === false) {
+            return $html . "\n" . $insertion . "\n";
+        }
+        return substr($html, 0, $pos) . "\n" . $insertion . "\n" . substr($html, $pos);
     }
 }

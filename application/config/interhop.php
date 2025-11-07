@@ -2,3 +2,5 @@
 
 // Feature flags InterHop
 $config['interhop_provider_limits_enabled'] = true;
+$config['interhop_assets_enabled'] = false;
+$config['interhop_translation_enabled'] = false;
