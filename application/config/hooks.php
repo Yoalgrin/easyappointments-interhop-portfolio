@@ -46,6 +46,13 @@ $hook['post_controller_constructor'][] = [
     'filename' => 'InterhopDebugBootstrapHook.php',
     'filepath' => 'hooks'
 ];
+// Auth JSON guard : garantit un JSON propre pour /login/validate
+$hook['pre_controller'][] = [
+    'class'    => 'InterhopAuthJsonGuardHook',
+    'function' => 'guardLoginValidate',
+    'filename' => 'InterhopAuthJsonGuardHook.php',
+    'filepath' => 'hooks'
+];
 
 /* End of file hooks.php */
 /* Location: ./application/config/hooks.php */

@@ -23,23 +23,29 @@
             '<small class="form-text text-muted">Laisser vide pour illimité</small>';
         host.appendChild(wrap);
 
-        // préremplir depuis l’API si possible (provider self ou admin)
+        // Préremplir sans deviner l'ID (self via session)
         try {
-            var uid = (window.App && App.Vars && App.Vars.user_id) ? App.Vars.user_id : null;
-            if (!uid) return;
-            fetch(baseUrl('interhop/providerslimit/get/' + uid), {credentials:'same-origin'})
+            fetch(baseUrl('interhop/providerslimit/get'), { credentials: 'same-origin' })
                 .then(r => r.ok ? r.json() : null)
                 .then(j => {
-                    if (!j || !j.success) return;
-                    var v = j.data && j.data.max_patients;
-                    if (v == null || v === '') return;
+                    if (!j || j.success !== true) return;
+                    var v = j.data && (j.data.max_patients ?? j.data.max_patient);
                     var el = document.getElementById('interhop-max-patients');
-                    if (el) el.value = String(v);
+                    if (!el) return;
+
+                    if (v == null || v === '' || isNaN(parseInt(v,10))) {
+                        el.value = ''; // NULL => illimité
+                    } else {
+                        el.value = String(parseInt(v,10));
+                    }
                 })
                 .catch(()=>{});
         } catch(_) {}
     }
-    function baseUrl(p){ return (window.BASE_URL || window.App?.Vars?.base_url || '/').replace(/\/+$/,'/') + p; }
+    function baseUrl(p){
+          const base = (window.BASE_URL || window.App?.Vars?.base_url || '/');
+          return base.replace(/\/?$/, '/') + String(p).replace(/^\/+/, '');
+        }
     function readLimit(){
         var el = document.getElementById('interhop-max-patients');
         if (!el) return '';

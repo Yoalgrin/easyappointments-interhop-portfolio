@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
-class ProvidersLimit extends CI_Controller
+class InterhopProvidersLimit extends CI_Controller
 {
     public function __construct()
     {
@@ -58,7 +58,8 @@ class ProvidersLimit extends CI_Controller
             $max_patients = max(1, (int)$max_patients);
         }
 
-        $data = ['provider_id'=>$provider_id,'max_patients'=>$max_patients];
+        $data = ['provider_id'=>$provider_id,'max_patients'=>$max_patients,'updated_at'=>date('Y-m-d H:i:s'),
+            'updated_by'=>$this->user_id()];
 
         $exists = $this->db->get_where('ea_interhop_providers_limits', ['provider_id'=>$provider_id])->row_array();
         if ($exists) {
@@ -68,5 +69,22 @@ class ProvidersLimit extends CI_Controller
         }
 
         return $this->output->set_output(json_encode(['success'=>true]));
+    }
+    public function get_self()
+    {
+        $pid = $this->user_id();
+        if ($pid <= 0) {
+            return $this->output->set_output(json_encode(['success'=>true,'data'=>['provider_id'=>null,'max_patients'=>null]]));
+        }
+
+        // provider: peut lire sa propre limite ; admin: peut tout lire
+        if (!($this->is_admin() || ($this->is_provider() && $this->user_id() === $pid))) {
+            return $this->output->set_status_header(403)
+                ->set_output(json_encode(['success'=>false,'message'=>'Forbidden']));
+        }
+
+        $row = $this->db->get_where('ea_interhop_providers_limits', ['provider_id' => $pid])->row_array();
+        $res = ['provider_id'=>$pid, 'max_patients'=>$row['max_patients'] ?? null];
+        return $this->output->set_output(json_encode(['success'=>true,'data'=>$res]));
     }
 }
