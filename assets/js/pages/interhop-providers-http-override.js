@@ -19,6 +19,7 @@
  *  - Pas d’override de App.Http.Providers.find
  *  - Pas de fill DOM
  */
+
 // --- InterHop compat: certains cores lisent window.$maxPatients dans providers.js ---
 // DOIT exister avant que providers.js s'exécute, sinon display() plante.
 (function ensureLegacyMaxPatientsVar(){
@@ -30,7 +31,6 @@
     } catch (_) {}
 })();
 
-
 (function () {
     if (window.__IH_PROVIDERS_HTTP_OVERRIDE__) return;
     window.__IH_PROVIDERS_HTTP_OVERRIDE__ = true;
@@ -39,19 +39,27 @@
     function deepCloneSafe(obj) {
         try { return JSON.parse(JSON.stringify(obj)); } catch (_) { return obj || {}; }
     }
+
     function toArray(maybe) {
         if (Array.isArray(maybe)) return maybe;
         if (maybe && typeof maybe === 'object') { try { return Object.values(maybe); } catch(_){} }
         return [];
     }
+
     function asValidJsonString(val, fallbackJson) {
+        // On veut toujours retourner une CHAÎNE JSON parseable
         if (typeof val === 'string') {
             var s = val.trim();
             try { JSON.parse(s); return s; } catch (_) { return fallbackJson; }
         }
-        try { return JSON.stringify(val ?? JSON.parse(fallbackJson)); }
-        catch (_) { return fallbackJson; }
+        try {
+            // si val est déjà un objet/array, on le stringify
+            return JSON.stringify(val ?? JSON.parse(fallbackJson));
+        } catch (_) {
+            return fallbackJson;
+        }
     }
+
     function mirrorIdentity(p) {
         if (!p.user || typeof p.user !== 'object') p.user = {};
         var keys = [
@@ -60,9 +68,17 @@
             'id_roles','is_private','ldap_dn','username'
         ];
         // user.* -> racine si racine vide
-        keys.forEach(function(k){ if ((p[k] == null || p[k] === '') && p.user[k] != null) p[k] = p.user[k]; });
+        keys.forEach(function(k){
+            if ((p[k] == null || p[k] === '') && p.user[k] != null) {
+                p[k] = p.user[k];
+            }
+        });
         // racine -> user.* si user.* vide
-        keys.forEach(function(k){ if ((p.user[k] == null || p.user[k] === '') && p[k] != null) p.user[k] = p[k]; });
+        keys.forEach(function(k){
+            if ((p.user[k] == null || p.user[k] === '') && p[k] != null) {
+                p.user[k] = p[k];
+            }
+        });
     }
 
     /* -------------------- (Optionnel) search → Array -------------------- */
@@ -86,22 +102,36 @@
         };
     }
 
-    /* -------------------- Wrap display (unique) -------------------- */
+    /* -------------------- Préparation avant affichage -------------------- */
     function prepareForDisplay(providerIn) {
-        // Garde-fous ultra stricts
-        var p = (providerIn && typeof providerIn === 'object') ? providerIn : {};
+        // Clone pour ne PAS muter l'objet d'origine
+        var raw = (providerIn && typeof providerIn === 'object') ? providerIn : {};
+        var p = deepCloneSafe(raw);
+
         if (!p.settings || typeof p.settings !== 'object') p.settings = {};
         var s = p.settings;
 
         // Champs potentiellement JSON — on force des chaînes parseables SANS supposer l'existence
-        s.working_plan = asValidJsonString((s.working_plan != null ? s.working_plan : '{}'), '{}');
-        s.working_plan_exceptions = asValidJsonString((s.working_plan_exceptions != null ? s.working_plan_exceptions : '[]'), '[]');
+        s.working_plan = asValidJsonString(
+            (s.working_plan != null ? s.working_plan : '{}'),
+            '{}'
+        );
+        s.working_plan_exceptions = asValidJsonString(
+            (s.working_plan_exceptions != null ? s.working_plan_exceptions : '[]'),
+            '[]'
+        );
 
         if ('schedule' in s) {
-            s.schedule = asValidJsonString((s.schedule != null ? s.schedule : '{}'), '{}');
+            s.schedule = asValidJsonString(
+                (s.schedule != null ? s.schedule : '{}'),
+                '{}'
+            );
         }
         if ('schedule_exceptions' in s) {
-            s.schedule_exceptions = asValidJsonString((s.schedule_exceptions != null ? s.schedule_exceptions : '[]'), '[]');
+            s.schedule_exceptions = asValidJsonString(
+                (s.schedule_exceptions != null ? s.schedule_exceptions : '[]'),
+                '[]'
+            );
         }
 
         // Services → tableau sûr
@@ -113,6 +143,7 @@
         return p;
     }
 
+    /* -------------------- Wrap display (unique) -------------------- */
     function wrapDisplayOnce() {
         if (!(window.App && App.Pages && App.Pages.Providers && typeof App.Pages.Providers.display === 'function')) return false;
         if (App.Pages.Providers.__IH_display_wrapped__) return true;
@@ -120,13 +151,14 @@
 
         var __origDisplay = App.Pages.Providers.display;
         App.Pages.Providers.display = function (provider) {
-            // Garde-fous
             try {
                 // sécurité : garantir aussi ici l'existence de $maxPatients
-                if (window.jQuery && !window.$maxPatients) {
-                    window.$maxPatients = window.jQuery('<input type="number" id="max-patients-legacy" style="display:none">');
-                }
-                var p = prepareForDisplay(provider);
+                try {
+                    if (window.jQuery && !window.$maxPatients) {
+                        window.$maxPatients = window.jQuery('<input type="number" id="max-patients-legacy" style="display:none">');
+                    }
+                } catch (_) {}
+
                 var p = prepareForDisplay(provider);
 
                 // +++ PATCH: mémoriser l'ID soignant courant +++
@@ -145,7 +177,6 @@
         };
         return true;
     }
-
 
     // wrap
     if (!wrapDisplayOnce()) {
