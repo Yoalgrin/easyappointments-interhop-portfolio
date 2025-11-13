@@ -158,10 +158,11 @@ $route['api/v1/settings/(:any)']['put'] = 'api/v1/settings_api_v1/update/$1';
 $route['api/v1/availabilities']['get'] = 'api/v1/availabilities_api_v1/get';
 
 // InterHop providers limit
+$route['interhop/providerslimit/get_self']    = 'InterhopProvidersLimit/get_self';
 $route['interhop/providerslimit/get']        = 'InterhopProvidersLimit/get_self';
 $route['interhop/providerslimit/get/(:num)'] = 'InterhopProvidersLimit/get/$1';
 $route['interhop/providerslimit/upsert']     = 'InterhopProvidersLimit/upsert';
-
+$route['interhop/providerslimit/set']         = 'InterhopProvidersLimit/set';
 
 /*
 | -------------------------------------------------------------------------

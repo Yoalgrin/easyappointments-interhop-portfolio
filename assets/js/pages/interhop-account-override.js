@@ -87,7 +87,7 @@
 
         // Préremplissage self
         try {
-            fetch(baseUrl('interhop/providerslimit/get'), { credentials: 'same-origin' })
+            fetch(baseUrl('interhop/providerslimit/get_self'), { credentials: 'same-origin' })
                 .then(function (r) { return r && r.ok ? r.json() : null; })
                 .then(function (j) {
                     if (!j || j.success !== true) return;

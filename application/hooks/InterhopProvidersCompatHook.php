@@ -3,118 +3,95 @@
 /**
  * InterhopProvidersCompatHook
  *
- * Compatibilité POST /providers/(update|store)
- * - Ne s’exécute QUE sur POST /providers/update ou /providers/store.
- * - N’invente rien : n’écrase PAS si provider/settings existent déjà.
- * - Si provider[...] ou provider[settings][...] sont absents, reconstruit le strict minimum
- *   attendu par le core pour éviter les resets et les JSON.parse côté front.
- * - Ne touche PAS à d’autres champs métier (services, notes, etc.) en dehors du minimum vital.
- * - N’interfère pas avec interhop[max_patients] (laissée telle quelle pour l’upsert dédié).
+ * Objectifs :
+ *  - ensureUserSettings : s’assurer qu’un soignant a bien une ligne de settings
+ *    (évite les NULL dans get_settings) — ne touche JAMAIS au POST.
+ *  - preNormalizeProvidersPost : aujourd’hui, ne fait PLUS AUCUNE
+ *    modification de $_POST (juste du log éventuel).
+ *
+ * Très important :
+ *  - On NE TOUCHE PAS à $_POST['provider'].
+ *  - On laisse le core gérer la sérialisation et la sauvegarde du profil.
+ *  - Les problèmes de JSON (working_plan & co) sont gérés côté front
+ *    OU par le core, mais plus par ce hook.
  */
 class InterhopProvidersCompatHook
 {
-    public function preNormalizeProvidersPost(): void
+    public function ensureUserSettings(): void
     {
-        if (strtoupper($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') return;
-
-        $CI = &get_instance();
-        $class  = strtolower($CI->router->class ?? '');
-        $method = strtolower($CI->router->method ?? '');
-
-        if ($class !== 'providers' || !in_array($method, ['update','store'], true)) {
+        if (!function_exists('get_instance')) {
             return;
         }
 
-        // Récup sources si présentes
-        $inProv = (isset($_POST['provider']) && is_array($_POST['provider'])) ? $_POST['provider'] : [];
-        $inSet  = (isset($inProv['settings']) && is_array($inProv['settings'])) ? $inProv['settings'] : [];
-
-        // Helper simple
-        $pick = static function (...$c) {
-            foreach ($c as $v) { if ($v !== null && $v !== '') return $v; }
-            return null;
-        };
-
-        // ---- Assurer l’existence des blocs attendus ----
-        if (!isset($_POST['provider']) || !is_array($_POST['provider'])) {
-            $_POST['provider'] = [];
-        }
-        if (!isset($_POST['provider']['settings']) || !is_array($_POST['provider']['settings'])) {
-            $_POST['provider']['settings'] = [];
+        $CI = &get_instance();
+        if (!is_object($CI)) {
+            return;
         }
 
-        // ---- Identité basique (ne remplit que si manquant) ----
-        $keys = ['id','first_name','last_name','email','phone_number','alt_number','address','city','state','zip_code','timezone','language','notes','id_roles','is_private','ldap_dn'];
-        foreach ($keys as $k) {
-            if (!array_key_exists($k, $_POST['provider'])) {
-                $v = $pick($inProv[$k] ?? null, $_POST[$k] ?? null);
-                if ($v !== null) $_POST['provider'][$k] = $v;
+        $class = strtolower($CI->router->class ?? '');
+        if ($class !== 'providers') {
+            return;
+        }
+
+        $http = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+        if ($http !== 'GET') {
+            return;
+        }
+
+        try {
+            $CI->load->model('user_model');
+            $CI->load->model('user_settings_model');
+
+            $providerId = (int)($CI->input->get('id') ?? 0);
+            if ($providerId <= 0) {
+                return;
             }
+
+            $user = $CI->user_model->get_row($providerId);
+            if (empty($user)) {
+                return;
+            }
+
+            $settings = $CI->user_settings_model->get_row(['id_users' => $providerId]);
+            if (!$settings) {
+                $CI->user_settings_model->insert([
+                    'id_users'      => $providerId,
+                    'notifications' => null,
+                    'working_plan'  => null,
+                    'settings'      => null,
+                ]);
+                log_message('debug', '[IH] ensureUserSettings: created settings row for provider #' . $providerId);
+            }
+        } catch (Throwable $e) {
+            log_message('error', '[IH] ensureUserSettings error: ' . $e->getMessage());
         }
-
-        // ---- SETTINGS : garantir la présence + types attendus par le core ----
-        // username (souvent requis côté UI)
-        if (!array_key_exists('username', $_POST['provider']['settings'])) {
-            $u = $pick($inSet['username'] ?? null, $_POST['username'] ?? null);
-            if ($u !== null) $_POST['provider']['settings']['username'] = (string)$u;
-        }
-
-        // working_plan (le core et le front le JSON.parse → on lui passe TOUJOURS une STRING JSON)
-        $company_wp = setting('company_working_plan'); // JSON objet ou string selon config
-        $wp_in = $pick(
-            $inSet['working_plan'] ?? null,
-            $_POST['provider']['settings']['working_plan'] ?? null,
-            $_POST['working_plan'] ?? null,
-            $company_wp ?? '{}'
-        );
-        $_POST['provider']['settings']['working_plan'] = self::asJsonString($wp_in, '{}');
-
-        // working_plan_exceptions (array JSON en string)
-        $wpe_in = $pick(
-            $inSet['working_plan_exceptions'] ?? null,
-            $_POST['provider']['settings']['working_plan_exceptions'] ?? null,
-            $_POST['working_plan_exceptions'] ?? null,
-            '[]'
-        );
-        $_POST['provider']['settings']['working_plan_exceptions'] = self::asJsonString($wpe_in, '[]');
-
-        // notifications / calendar_view : laisser passer si fournis, sinon ne rien inventer
-        // (le controller gère déjà allowed/optional)
-
-        // ---- Services : NE PAS forcer (le controller sait gérer optional) ----
-        // Juste s'assurer que si présent, c’est un array
-        if (isset($_POST['provider']['services']) && !is_array($_POST['provider']['services'])) {
-            unset($_POST['provider']['services']); // on laisse optional() du modèle faire le job proprement
-        }
-
-        // ---- interhop[max_patients] : on ne touche à rien ici (géré par ton endpoint upsert) ----
-
-        log_message('debug', '[IH] ProvidersCompat normalized POST for /providers/'.$method);
     }
 
-    /**
-     * Transforme n’importe quelle valeur en chaîne JSON valide (pour JSON.parse côté front).
-     */
-    private static function asJsonString($val, string $fallbackJson): string
+    public function preNormalizeProvidersPost(): void
     {
-        // Déjà string JSON valide ?
-        if (is_string($val)) {
-            $s = trim($val);
-            // on accepte aussi '{}' / '[]' vides
-            try { json_decode($s, true, 512, JSON_THROW_ON_ERROR); return $s; }
-            catch (Throwable $e) { /* continue */ }
+        if (strtoupper($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            return;
         }
 
-        // Objet/array → stringify
-        if (is_array($val) || is_object($val)) {
-            try {
-                $s = json_encode($val, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-                if ($s !== false) return $s;
-            } catch (Throwable $e) { /* fallback */ }
+        if (!function_exists('get_instance')) {
+            return;
         }
 
-        // Fallback
-        return $fallbackJson;
+        $CI = &get_instance();
+        if (!is_object($CI)) {
+            return;
+        }
+
+        $class  = strtolower($CI->router->class  ?? '');
+        $method = strtolower($CI->router->method ?? '');
+
+        if ($class !== 'providers' || !in_array($method, ['update', 'store'], true)) {
+            return;
+        }
+
+        // 👉 DEBUG : on log le POST brut sans le modifier
+        log_message('debug', '[IH DEBUG] RAW POST /providers/'.$method.': ' . print_r($_POST, true));
+
+        // IMPORTANT : ne rien toucher ici tant qu’on n’a pas regardé les logs
     }
 }
-

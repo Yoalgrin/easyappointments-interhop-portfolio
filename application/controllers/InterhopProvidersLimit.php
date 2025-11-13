@@ -13,11 +13,36 @@ class InterhopProvidersLimit extends CI_Controller
     private function is_admin(): bool {
         return isset($_SESSION['role_slug']) && $_SESSION['role_slug'] === 'admin';
     }
-    private function is_provider(): bool {
-        return isset($_SESSION['role_slug']) && $_SESSION['role_slug'] === DB_SLUG_PROVIDER;
-    }
+
     private function user_id(): int {
         return (int)($_SESSION['user_id'] ?? 0);
+    }
+
+    /**
+     * Un "provider" = un user qui :
+     *  - a le rôle provider OU
+     *  - est présent dans ea_services_providers.id_users
+     */
+    private function is_provider(): bool {
+        $uid = $this->user_id();
+        if ($uid <= 0) {
+            return false;
+        }
+
+        // 1) Cas simple : role provider en session
+        if (isset($_SESSION['role_slug']) && $_SESSION['role_slug'] === DB_SLUG_PROVIDER) {
+            return true;
+        }
+
+        // 2) Cas admin+soignant : vérifier en DB via ea_services_providers.id_users
+        $row = $this->db->select('id_users')
+            ->from('services_providers')            // ea_services_providers avec préfixe
+            ->where('id_users', $uid)
+            ->limit(1)
+            ->get()
+            ->row();
+
+        return (bool)($row && isset($row->id_users));
     }
 
     // GET /interhop/providerslimit/get/{provider_id}
@@ -25,7 +50,10 @@ class InterhopProvidersLimit extends CI_Controller
     {
         $pid = (int)$provider_id;
         if ($pid <= 0) {
-            return $this->output->set_output(json_encode(['success'=>true,'data'=>['provider_id'=>null,'max_patients'=>null]]));
+            return $this->output->set_output(json_encode([
+                'success'=>true,
+                'data'=>['provider_id'=>null,'max_patients'=>null]
+            ]));
         }
 
         // provider lit sa propre limite ; admin lit tout
@@ -72,16 +100,21 @@ class InterhopProvidersLimit extends CI_Controller
             return $this->output->set_status_header(500)
                 ->set_output(json_encode(['success'=>false,'message'=>'db error']));
         }
-        return $this->output->set_output(json_encode(['success'=>true,'data'=>['provider_id'=>$pid,'max_patients'=>$max]]));
+        return $this->output->set_output(json_encode([
+            'success'=>true,
+            'data'=>['provider_id'=>$pid,'max_patients'=>$max]
+        ]));
     }
+
     // POST /interhop/providerslimit/upsert  (alias de set, pour le JS)
     public function upsert()
     {
         return $this->set();
     }
+
     public function get_self()
     {
-        // Exemple : pour un soignant qui lit sa propre limite
+        // Exemple : pour un soignant (ou admin+soignant) qui lit sa propre limite
         $pid = $this->user_id();
         if ($pid <= 0 || !$this->is_provider()) {
             return $this->output->set_output(json_encode([
@@ -91,5 +124,4 @@ class InterhopProvidersLimit extends CI_Controller
         }
         return $this->get($pid);
     }
-
 }

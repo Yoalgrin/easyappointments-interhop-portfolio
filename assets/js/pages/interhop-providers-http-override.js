@@ -182,4 +182,49 @@
     if (!wrapDisplayOnce()) {
         window.addEventListener('load', wrapDisplayOnce, { once: true });
     }
+    // -----------------------------------------------------------------------------
+// InterHop – Patch JSON pour App.Http.Providers.find
+// - Certains chemins de réponse renvoient une STRING JSON.
+// - Le core EasyAppointments attend un OBJET provider.
+// - Ce wrapper garantit que find(...) renvoie toujours un objet.
+// -----------------------------------------------------------------------------
+    (function () {
+        if (!window.App || !App.Http || !App.Http.Providers) {
+            return;
+        }
+
+        // Évite de patcher plusieurs fois si le fichier est rechargé
+        if (window.__IH_PROVIDERS_FIND_JSON_FIX__) {
+            return;
+        }
+        window.__IH_PROVIDERS_FIND_JSON_FIX__ = true;
+
+        var originalFind = App.Http.Providers.find;
+
+        App.Http.Providers.find = function (id) {
+            var result = originalFind.call(this, id);
+
+            // Comportement natif : une Promise
+            if (result && typeof result.then === 'function') {
+                return result.then(function (provider) {
+                    if (typeof provider === 'string') {
+                        try {
+                            var parsed = JSON.parse(provider);
+                            // Debug facultatif :
+                            // console.log('[InterHop] Providers.find: string JSON convertie en objet.', parsed);
+                            return parsed;
+                        } catch (e) {
+                            console.error('[InterHop] Providers.find: JSON.parse échoué sur provider string.', e, provider);
+                        }
+                    }
+
+                    return provider;
+                });
+            }
+
+            // Si un jour find() ne renvoie plus une Promise, on laisse tel quel
+            return result;
+        };
+    })();
+
 })();

@@ -4,42 +4,68 @@ class InterhopProvidersLimitSaveHook
 {
     /**
      * Soignant : POST /account/save
-     * Sérialisation attendue côté JS : provider[max_patients]
-     * Fallback accepté : account[settings][interhop_max_patients]
+     * Sérialisation possible côté JS :
+     *  - provider[max_patients]
+     *  - interhop[max_patients]
+     *  - account[settings][interhop_max_patients]
      */
     public function afterAccountSave(): void
     {
-        //Debug à supprimer.
-        log_message('debug', '[IH] afterAccountSave: class='.$CI->router->class.' method='.$CI->router->method.' role='.session('role_slug'));
-        log_message('debug', '[IH] POST interhop[max_patients]='.print_r($CI->input->post('interhop'), true));
-        log_message('debug', '[IH] POST provider[max_patients]='.print_r($CI->input->post('provider'), true));
+        if (!function_exists('get_instance')) {
+            return;
+        }
 
-        $CI = &get_instance();
+        $CI = get_instance();
+        if (!is_object($CI)) {
+            return;
+        }
 
-        if (strtolower($CI->input->method(TRUE)) !== 'post') return;
-        if ($CI->router->class !== 'Account' || $CI->router->method !== 'save') return;
+        // On ne traite que les POST
+        if (strtoupper($CI->input->method(TRUE)) !== 'POST') {
+            return;
+        }
+
+        $class  = strtolower($CI->router->class  ?? '');
+        $method = strtolower($CI->router->method ?? '');
+
+        if ($class !== 'account' || $method !== 'save') {
+            return;
+        }
 
         // Feature flag optionnel
-        if ($CI->config->load('interhop', true)) {
+        if ($CI->config->load('interhop', true, true)) {
             $enabled = $CI->config->item('interhop_provider_limits_enabled', 'interhop');
-            if ($enabled === false) return;
+            if ($enabled === false) {
+                return;
+            }
         }
 
         // Autoriser soignant ET admin sur leur propre compte
         $role = session('role_slug');
-        if (!in_array($role, [DB_SLUG_PROVIDER, 'admin'], true)) return;
+        if (!in_array($role, [DB_SLUG_PROVIDER, 'admin'], true)) {
+            return;
+        }
+
+        // Debug utile mais non bloquant
+        log_message('debug', '[IH] afterAccountSave: class=' . $class . ' method=' . $method . ' role=' . $role);
+        log_message('debug', '[IH] POST interhop=' . print_r($CI->input->post('interhop'), true));
+        log_message('debug', '[IH] POST provider=' . print_r($CI->input->post('provider'), true));
 
         // Récup payloads possibles
         $provider = $CI->input->post('provider');   // provider[max_patients]
         $account  = $CI->input->post('account');    // account[settings][interhop_max_patients]
         $interhop = $CI->input->post('interhop');   // interhop[max_patients]
-        $rawTop   = $CI->input->post('max_patients'); // au cas où
+        $rawTop   = $CI->input->post('max_patients'); // au cas où, à plat
 
-        if (!is_array($provider) && !is_array($account) && !is_array($interhop) && $rawTop === null) return;
+        if (!is_array($provider) && !is_array($account) && !is_array($interhop) && $rawTop === null) {
+            return;
+        }
 
-        // ID cible = compte en cours / user courant
+        // ID cible = compte courant
         $providerId = (int)($account['id'] ?? session('user_id') ?? 0);
-        if ($providerId <= 0) return;
+        if ($providerId <= 0) {
+            return;
+        }
 
         // Valeur : chercher dans tous les chemins possibles
         $raw = null;
@@ -52,47 +78,69 @@ class InterhopProvidersLimitSaveHook
         } elseif ($rawTop !== null) {
             $raw = $rawTop;
         }
-        if ($raw === null) return;
 
-        $max = (is_numeric($raw) && (int)$raw >= 1) ? (int)$raw : null;
+        if ($raw === null) {
+            return;
+        }
+
+        $max = (is_numeric($raw) && (int) $raw >= 1) ? (int) $raw : null;
 
         $CI->load->model('interhop_providers_limit_model');
         $CI->interhop_providers_limit_model->upsert(
             $providerId,
             $max,
-            (int)(session('user_id') ?? 0)
+            (int) (session('user_id') ?? 0)
         );
     }
+
     /**
-     * Admin : POST /providers/save
-     * Sérialisation attendue : provider[max_patients]
+     * Admin : POST /providers/update
+     * (Actuellement tu passes déjà par /interhop/providerslimit/upsert ; ce hook est donc plutôt un filet de sécurité)
      */
     public function afterProvidersSave(): void
     {
-        $CI = &get_instance();
+        if (!function_exists('get_instance')) {
+            return;
+        }
 
-        if (strtolower($CI->input->method(TRUE)) !== 'post') return;
-        if ($CI->router->class !== 'Providers') return;
+        $CI = get_instance();
+        if (!is_object($CI)) {
+            return;
+        }
 
-        $method = $CI->router->method;
-        if (!in_array($method, ['update'], true)) return;
+        if (strtoupper($CI->input->method(TRUE)) !== 'POST') {
+            return;
+        }
 
-        if ($CI->config->load('interhop', true)) {
+        $class  = strtolower($CI->router->class  ?? '');
+        $method = strtolower($CI->router->method ?? '');
+
+        // On ne vise que /providers/update
+        if ($class !== 'providers' || !in_array($method, ['update'], true)) {
+            return;
+        }
+
+        if ($CI->config->load('interhop', true, true)) {
             $enabled = $CI->config->item('interhop_provider_limits_enabled', 'interhop');
-            if ($enabled === false) return;
+            if ($enabled === false) {
+                return;
+            }
         }
 
         // Récup post
-        $provider = $CI->input->post('provider');   // attendu par design
-        $interhop = $CI->input->post('interhop');   // ce que tu vois dans la requête
-        $rawTop   = $CI->input->post('max_patients'); // au cas où (à plat)
+        $provider = $CI->input->post('provider');   // design natif
+        $interhop = $CI->input->post('interhop');   // variante éventuelle
+        $rawTop   = $CI->input->post('max_patients');
 
         if (is_array($provider)) {
             $pid = (int)($provider['id'] ?? 0);
         } else {
-            $pid = (int)$CI->input->post('provider_id'); // repli si jamais
+            $pid = (int) $CI->input->post('provider_id'); // repli
         }
-        if ($pid <= 0) return;
+
+        if ($pid <= 0) {
+            return;
+        }
 
         // Cherche la valeur dans plusieurs chemins possibles
         $raw = null;
@@ -104,17 +152,17 @@ class InterhopProvidersLimitSaveHook
             $raw = $rawTop;
         }
 
-        if ($raw === null) return;
+        if ($raw === null) {
+            return;
+        }
 
-        $max = (is_numeric($raw) && (int)$raw >= 1) ? (int)$raw : null;
+        $max = (is_numeric($raw) && (int) $raw >= 1) ? (int) $raw : null;
 
         $CI->load->model('interhop_providers_limit_model');
         $CI->interhop_providers_limit_model->upsert(
             $pid,
             $max,
-            (int)(session('user_id') ?? 0)
+            (int) (session('user_id') ?? 0)
         );
     }
-
 }
-
