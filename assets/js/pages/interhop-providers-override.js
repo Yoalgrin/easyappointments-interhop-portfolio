@@ -1,316 +1,399 @@
 /*!
- * InterHop - Providers override
- * Admin: ajoute le champ "Limite patients" (lecture seule hors mode édition),
- * et sérialise la valeur lors de la sauvegarde.
+ * InterHop – Providers UI override (Admin)
+ * - Champ "Limite de patients" + bouton "Sauvegarder" dans le formulaire de profil soignant.
+ * - GET /interhop/providerslimit/get/{ID} (fallback ?provider_id=ID) pour hydrater.
+ * - POST /interhop/providerslimit/upsert pour enregistrer.
+ * - PID robuste: #providers input[name="id"] -> .provider-row.selected[data-id] -> window.__IH_CURRENT_PROVIDER_ID__
+ * - Aucun wrap réseau du core : on écoute juste les clics existants (liste, éditer, annuler, ajouter).
  */
 
-// --- I18N bootstrap (évite les erreurs "Cannot find translation...") ---
-(function ensureInterHopI18N(){
-    // EA expose un objet global EALang + une fonction lang(key)
-    window.EALang = window.EALang || {};
-    const missing = (k) => typeof window.EALang[k] === 'undefined' || window.EALang[k] === null;
-
-    if (missing('max_patients')) {
-        window.EALang['max_patients'] = 'Limite de patients';
-    }
-    if (missing('max_patients_help')) {
-        window.EALang['max_patients_help'] = 'Laisser vide pour illimité';
-    }
-    if (missing('max_patients_placeholder')) {
-        window.EALang['max_patients_placeholder'] = 'ex: 100';
-    }
-
-    // safeLang évite d’appeler lang() si la clé manque (et ne spam pas la console)
-    window.IH_safeLang = function(key, fallback){
-        try {
-            if (typeof window.lang === 'function') {
-                const v = window.lang(key);
-                if (v && v !== key) return v; // valeur traduite
-            }
-        } catch(e) {}
-        return (typeof fallback === 'string') ? fallback : (window.EALang[key] || key);
-    };
-})();
-
 (function () {
-    'use strict';
+    if (window.__IH_PROVIDERS_UI_OVERRIDE_SIMPLE__) return;
+    window.__IH_PROVIDERS_UI_OVERRIDE_SIMPLE__ = true;
 
-    // Démarre quand l'environnement App.Pages.Providers est prêt.
-    window.addEventListener('load', function () {
-        var tries = 0;
-        var iv = setInterval(function () {
-            tries++;
-            if (window.App && App.Pages && App.Pages.Providers && typeof App.Pages.Providers.fillForm === 'function') {
-                clearInterval(iv);
-                init();
-            } else if (tries > 200) {
-                clearInterval(iv); // évite une boucle infinie si la page change
-            }
-        }, 50);
-    });
+    var $ = window.jQuery || window.$;
+    if (!$) return;
 
-    /**
-     * Point d’entrée : branche les hooks UI (injection du champ) et data (sérialisation).
-     */
-    function init() {
-        // Conserve la référence d’origine
-        var _fill = App.Pages.Providers.fillForm;
+    // -------------------------------------------------
+    // Sélecteurs & constantes
+    // -------------------------------------------------
+    var SEL = {
+        page: '#providers',
+        form: '#providers .record-details form',
+        recordDetails: '#providers .record-details',
+        idHidden: '#providers input[name="id"]',
+        row: '.provider-row',
+        editBtn: '#edit-provider',
+        cancelBtn: '#cancel-provider',
+        addBtn: '#add-provider'
+    };
 
-        /**
-         * Active/désactive le champ selon le mode (édition ou non).
-         * @param {boolean} enabled
-         */
-        function setEnabled(enabled) {
-            var el = document.getElementById('interhop-max-patients');
-            if (el) el.disabled = !enabled;
-        }
+    // état global : est-ce qu’on considère le form en édition ?
+    var __ihEditing = false;
 
-        /**
-         * Injecte le groupe de champs si absent.
-         * Point d’ancrage : après un form-group existant (ex. #providers form).
-         */
-        function ensureFieldInjected() {
-            if (document.getElementById('interhop-max-patients')) return;
-
-            const $after = $('#last-name').closest('.form-group'); // point d’ancrage stable
-            const html = `
-    <div class="form-group" id="interhop-max-patients-row">
-      <label for="interhop-max-patients">${IH_safeLang('max_patients','Limite de patients')}</label>
-      <input id="interhop-max-patients" type="number" min="1" class="form-control"
-             placeholder="${IH_safeLang('max_patients_placeholder','ex: 100')}">
-      <small class="form-text text-muted">
-        ${IH_safeLang('max_patients_help','Laisser vide pour illimité')}
-      </small>
-    </div>
-  `;
-            if ($after.length) {
-                $(html).insertAfter($after);
-            } else {
-                // fallback : en fin de formulaire
-                ($('#account').length ? $('#account') : $('form:first')).append(html);
-            }
-        }
-
-
-        /**
-         * Wrapping du remplissage du formulaire provider pour injecter le champ
-         * et le valoriser depuis les données du provider.
-         */
-        App.Pages.Providers.fillForm = function (provider) {
-            // Exécution d’origine
-            _fill(provider);
-
-            // Injection idempotente du champ
-            ensureFieldInjected();
-
-            // Valorisation (lecture seule par défaut)
-            var input = document.getElementById('interhop-max-patients');
-            if (input) {
-                var input = document.getElementById('interhop-max-patients');
-                if (input) {
-                    var v = '';
-                    if (provider) {
-                        if (provider.interhop_max_patients != null) {
-                            v = provider.interhop_max_patients;
-                        } else if (provider.max_patients != null) {
-                            v = provider.max_patients;
-                        } else if (provider.settings && provider.settings.max_patients != null) {
-                            v = provider.settings.max_patients;
-                        } else {
-                            v = '';
-                        }
-                    }
-                    input.value = (v == null ? '' : String(v));
-                }
-
-            }
-            setEnabled(false);
+    function t(key) {
+        var map = {
+            title: 'Limite de patients',
+            placeholder: 'Laissez vide ou 0 pour illimité',
+            save: 'Sauvegarder',
+            saving: 'Sauvegarde…',
+            saved: 'Valeur enregistrée',
+            error: 'Erreur lors de la sauvegarde',
+            no_provider: 'Aucun soignant sélectionné'
         };
-
-        // Gestion des boutons d’édition/annulation (activer/désactiver le champ).
-        wireEditModeToggles(setEnabled);
-
-        // Sérialisation étendue à la sauvegarde si la fonction d’origine existe.
-        if (typeof App.Pages.Providers.serializeForm === 'function') {
-            var _serialize = App.Pages.Providers.serializeForm;
-            App.Pages.Providers.serializeForm = function () {
-                var payload = _serialize() || {};
-                var v = readMaxPatients(); // utilise la même helper que ci-dessus
-
-                // Chemin officiel attendu par le backend: provider[max_patients]
-                payload.provider = payload.provider || {};
-                payload.provider.max_patients = v; // '' = illimité
-
-                // Fallbacks tolérants (si ton PHP lit ailleurs)
-                payload.max_patients = v;
-                payload.settings = payload.settings || {};
-                payload.settings.max_patients = v;
-
-                return payload;
-            };
-        } else if (typeof App.Pages.Providers.gatherFormData === 'function') {
-            // Certaines versions exposent gatherFormData plutôt que serializeForm
-            var _gather = App.Pages.Providers.gatherFormData;
-            App.Pages.Providers.gatherFormData = function () {
-                var data = _gather() || {};
-                var v = readMaxPatients();
-
-                data.provider = data.provider || {};
-                data.provider.max_patients = v;
-
-                data.max_patients = v;
-                data.settings = data.settings || {};
-                data.settings.max_patients = v;
-
-                return data;
-            };
-        } else {
-            // Dernier recours : on s'en remet au hidden name="provider[max_patients]"
-            console.info('[IH] Pas de serializeForm/gatherFormData: fallback hidden carrier actif');
-        }
+        return (window.EALang && EALang[key]) ? EALang[key] : (map[key] || key);
     }
 
-    /**
-     * Rattache les listeners aux contrôles d’édition/annulation natifs,
-     * en couvrant plusieurs sélecteurs selon les templates.
-     * @param {(enabled:boolean)=>void} setEnabled
-     */
-    function wireEditModeToggles(setEnabled) {
-        // Boutons "Éditer"
-        [
-            document.querySelector('#edit-provider'),
-            document.querySelector('[data-action="edit"]'),
-            document.querySelector('#edit')
-        ]
-            .filter(Boolean)
-            .forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    // Micro-délai pour laisser EA basculer en mode édition
-                    setTimeout(function () { setEnabled(true); }, 0);
-                });
-            });
-
-        // Boutons "Annuler"
-        [
-            document.querySelector('#cancel-provider'),
-            document.querySelector('[data-action="cancel"]'),
-            document.querySelector('#cancel')
-        ]
-            .filter(Boolean)
-            .forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    // Micro-délai pour laisser EA revenir en mode lecture
-                    setTimeout(function () { setEnabled(false); }, 0);
-                });
-            });
-    }
-
-    /**
-     * Helper sécurisé pour récupérer un libellé depuis lang(), avec repli.
-     * @param {string} key
-     * @returns {string}
-     */
-    function safeLang(key) {
+    function siteUrl(path) {
         try {
-            if (typeof lang === 'function') {
-                var s = lang(key);
-                if (s && typeof s === 'string') return s;
+            if (window.App && App.Utils && App.Utils.Url) {
+                return App.Utils.Url.siteUrl(path);
             }
-        } catch (e) { /* noop */ }
-        // Valeurs par défaut si la clé de traduction n’existe pas
-        var fallback = {
-            max_patients: 'Limite patients',
-            max_patients_help: 'Laisser vide pour aucune limite. Valeur entière ≥ 1.',
-            max_patients_invalid: 'Valeur invalide pour la limite patients.'
-        };
-        return fallback[key] || key;
+        } catch (_) {}
+        if (path.charAt(0) !== '/') path = '/' + path;
+        return path;
     }
-    // --- IH Save Fixer (Providers) ---
-    (function () {
-        function waitNS(cb, tries=200) {
-            const ok = window.App && App.Pages && App.Pages.Providers;
-            if (ok) return cb(App.Pages.Providers);
-            if (tries <= 0) return console.warn('[IH] Providers NS introuvable');
-            setTimeout(() => waitNS(cb, tries-1), 50);
-        }
 
-        function findSaveButton() {
-            const cands = Array.from(document.querySelectorAll('button, a.btn, input[type=button], input[type=submit]'));
-            return cands.find(b =>
-                /enregistr|save|sauveg|valider/i.test((b.textContent || '').trim()) ||
-                /save|enregistrer/i.test(b.id || '') ||
-                /save/i.test(b.className || '') ||
-                /save/i.test(b.getAttribute('data-action') || '')
-            ) || null;
-        }
-
-        // input hidden "transporteur" pour garantir provider[max_patients]
-        function ensureHiddenCarrier() {
-            let hid = document.getElementById('ih-max-patients-hidden');
-            if (!hid) {
-                hid = document.createElement('input');
-                hid.type = 'hidden';
-                hid.id = 'ih-max-patients-hidden';
-                hid.name = 'provider[max_patients]';
-                (document.querySelector('#providers') || document.querySelector('form') || document.body).appendChild(hid);
+    // -------------------------------------------------
+    // URL fallbacks (gère /index.php/)
+    // -------------------------------------------------
+    function ciUrlCandidates(path) {
+        var out = [];
+        try {
+            if (window.App && App.Utils && App.Utils.Url && typeof App.Utils.Url.siteUrl === 'function') {
+                out.push(App.Utils.Url.siteUrl(path)); // ex: http://localhost/index.php/...
             }
-            return hid;
-        }
+        } catch (_) {}
+        out.push('/index.php/' + path);
+        out.push('/' + path);
+        return out.filter(function (v, i, a) { return v && a.indexOf(v) === i; });
+    }
 
-        function readMaxPatients() {
-            const el = document.getElementById('interhop-max-patients');
-            if (!el) return '';
-            const raw = (el.value || '').trim();
-            if (raw === '') return ''; // vide = illimité
-            const n = parseInt(raw, 10);
-            return (Number.isFinite(n) && n >= 1) ? String(n) : ''; // on laisse vide si invalide
-        }
-
-        function ensureSaveWiring(NS) {
-            const form = document.querySelector('#providers') || document.querySelector('form');
-            if (!form) {
-                console.warn('[IH] Formulaire Providers introuvable.');
+    function ajaxPostWithCiFallback(path, data) {
+        var urls = ciUrlCandidates(path);
+        var d = $.Deferred();
+        (function tryNext(i) {
+            if (i >= urls.length) {
+                d.reject({ status: 404, message: 'All POST candidates failed' });
                 return;
             }
+            $.ajax({
+                url: urls[i],
+                method: 'POST',
+                data: data,
+                headers: csrfHeaders()
+            }).then(d.resolve, function (xhr) {
+                if (xhr && (xhr.status === 404 || xhr.status === 405)) {
+                    tryNext(i + 1);
+                } else {
+                    d.reject(xhr);
+                }
+            });
+        })(0);
+        return d.promise();
+    }
 
-            // Bouton
-            let btn = findSaveButton();
-            if (!btn) {
-                btn = document.createElement('button');
-                btn.id = 'ih-force-save';
-                btn.className = 'btn btn-primary';
-                btn.textContent = 'Enregistrer';
-                (document.querySelector('.page-actions') || form).appendChild(btn);
+    function ajaxGetJsonWithCiFallback(path, query) {
+        var urls = ciUrlCandidates(path);
+        var d = $.Deferred();
+        (function tryNext(i) {
+            if (i >= urls.length) {
+                d.reject({ status: 404, message: 'All GET candidates failed' });
+                return;
             }
-            if (btn.type !== 'submit') btn.setAttribute('type', 'submit');
-            btn.removeAttribute('disabled');
+            $.getJSON(urls[i], query).then(d.resolve, function (xhr) {
+                if (xhr && (xhr.status === 404 || xhr.status === 405)) {
+                    tryNext(i + 1);
+                } else {
+                    d.reject(xhr);
+                }
+            });
+        })(0);
+        return d.promise();
+    }
 
-            // Hidden carrier
-            const hidden = ensureHiddenCarrier();
-
-            // Router le submit vers Providers.save() et MAJ du hidden avant
-            if (!form.dataset.ihSaveBound) {
-                form.addEventListener('submit', function (e) {
-                    e.preventDefault();
-                    // met à jour le hidden à chaque submit
-                    hidden.value = readMaxPatients();
-
-                    try {
-                        if (typeof NS.save === 'function') {
-                            NS.save();
-                        } else {
-                            console.warn('[IH] App.Pages.Providers.save manquant, tentative fallback clic bouton');
-                            try { btn.click(); } catch(_) {}
-                        }
-                    } catch (err) {
-                        console.error('[IH] Providers.save a levé une exception', err);
-                    }
-                });
-                form.dataset.ihSaveBound = '1';
-                console.info('[IH] Submit → Providers.save() connecté.');
+    // -------------------------------------------------
+    // CSRF helpers (header + champ POST)
+    // -------------------------------------------------
+    function getCookie(name) {
+        var all = document.cookie ? document.cookie.split(/;\s*/) : [];
+        for (var i = 0; i < all.length; i++) {
+            var pair = all[i].split('=');
+            var key = decodeURIComponent(pair[0]);
+            if (key === name) {
+                return decodeURIComponent(pair.slice(1).join('=') || '');
             }
         }
+        return '';
+    }
 
-        waitNS(ensureSaveWiring);
-    })();
+    function csrfValue() {
+        try {
+            if (typeof vars === 'function') {
+                var v = vars('csrf_token'); if (v) return v;
+                var cName = vars('csrf_cookie_name') || 'csrf_cookie';
+                var fromCookie = getCookie(cName); if (fromCookie) return fromCookie;
+            }
+        } catch (_) {}
+        return getCookie('csrf_cookie'); // fallback générique
+    }
+
+    function csrfFieldName() {
+        try { return (typeof vars === 'function' && vars('csrf_token_name')) || 'csrf_token'; }
+        catch (_) { return 'csrf_token'; }
+    }
+
+    function csrfHeaders() {
+        var v = csrfValue();
+        return v ? { 'X-CSRF-TOKEN': v } : {};
+    }
+
+    $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+            var method = (settings.type || settings.method || 'GET').toUpperCase();
+            if (method !== 'GET') {
+                var h = csrfHeaders();
+                Object.keys(h).forEach(function (k) { xhr.setRequestHeader(k, h[k]); });
+            }
+        }
+    });
+
+    // -------------------------------------------------
+    // PID robuste
+    // -------------------------------------------------
+    function getPid() {
+        // 1) hidden name="id"
+        var el = document.querySelector(SEL.idHidden);
+        if (el && el.value) {
+            var n1 = parseInt(String(el.value).trim(), 10);
+            if (Number.isFinite(n1) && n1 > 0) return n1;
+        }
+
+        // 2) ligne sélectionnée côté liste
+        var selRow = document.querySelector('.provider-row.selected');
+        if (selRow && selRow.getAttribute('data-id')) {
+            var n2 = parseInt(selRow.getAttribute('data-id'), 10);
+            if (Number.isFinite(n2) && n2 > 0) return n2;
+        }
+
+        // 3) fallback global éventuel
+        var g = window.__IH_CURRENT_PROVIDER_ID__;
+        if (g) {
+            var n3 = parseInt(g, 10);
+            if (Number.isFinite(n3) && n3 > 0) return n3;
+        }
+
+        return null;
+    }
+
+    // -------------------------------------------------
+    // État : activer/désactiver notre champ et bouton
+    // -------------------------------------------------
+    function setEnabled(editing) {
+        __ihEditing = !!editing;
+        var input = document.getElementById('interhop-max-patients');
+        var btn = document.getElementById('ih-max-patients-save');
+        if (!input || !btn) return;
+        input.disabled = !__ihEditing;
+        btn.disabled = !__ihEditing;
+    }
+
+    // -------------------------------------------------
+    // Lecture/saisie valeur
+    // -------------------------------------------------
+    function readValue() {
+        var el = document.getElementById('interhop-max-patients');
+        if (!el) return '';
+        var raw = (el.value || '').trim();
+        if (raw === '' || raw === '0') return ''; // '' = illimité (NULL côté PHP)
+        var n = parseInt(raw, 10);
+        return Number.isFinite(n) && n >= 1 ? String(n) : '';
+    }
+
+    // -------------------------------------------------
+    // Hydratation (GET)
+    // -------------------------------------------------
+    function hydrateForCurrent() {
+        var pid = getPid();
+        if (!pid) { return; }
+
+        ajaxGetJsonWithCiFallback('interhop/providerslimit/get/' + pid, null)
+            .then(applyHydration)
+            .fail(function () {
+                ajaxGetJsonWithCiFallback('interhop/providerslimit/get', { provider_id: pid })
+                    .then(applyHydration)
+                    .fail(function (xhr) { console.error('[IH] hydrate error', xhr); });
+            });
+
+        function applyHydration(r) {
+            try {
+                var val = '';
+                if (r && typeof r === 'object' && r.data && typeof r.data === 'object') {
+                    var mp = r.data.max_patients;
+                    if (mp !== null && mp !== undefined) {
+                        var n = parseInt(mp, 10);
+                        if (Number.isFinite(n) && n >= 0) val = String(n);
+                    }
+                }
+                var input = document.getElementById('interhop-max-patients');
+                if (input) input.value = val;
+            } catch (_) {}
+        }
+    }
+
+    // -------------------------------------------------
+    // UI : injection champ + bouton (dans le FORM profil)
+    // -------------------------------------------------
+    function injectFieldOnce() {
+        if (document.getElementById('interhop-max-patients-block')) return true;
+
+        var host = document.querySelector(SEL.form) ||
+            document.querySelector(SEL.recordDetails) ||
+            document.querySelector('#providers form'); // dernier secours
+
+        if (!host) return false;
+
+        var block = document.createElement('div');
+        block.id = 'interhop-max-patients-block';
+        block.className = 'form-group mt-3';
+
+        block.innerHTML =
+            '<label for="interhop-max-patients" class="form-label d-block">' + t('title') + '</label>' +
+            '<div class="d-flex align-items-center" style="gap:8px;max-width:420px;">' +
+            '<input type="number" min="0" step="1" id="interhop-max-patients" class="form-control" ' +
+            'placeholder="' + t('placeholder') + '" />' +
+            '<button type="button" id="ih-max-patients-save" class="btn btn-primary">' + t('save') + '</button>' +
+            '</div>' +
+            '<div id="ih-max-patients-flash" class="small mt-1"></div>';
+
+        host.appendChild(block);
+        bindSave();
+        setEnabled(false); // par défaut : lecture seule
+        return true;
+    }
+
+    function setFlash(msg, ok) {
+        var el = document.getElementById('ih-max-patients-flash');
+        if (!el) return;
+        el.textContent = msg || '';
+        el.style.color = ok ? '#0a7d28' : '#b00020';
+        if (msg) setTimeout(function () { el.textContent = ''; }, 1800);
+    }
+
+    // -------------------------------------------------
+    // Sauvegarde (POST)
+    // -------------------------------------------------
+    function bindSave() {
+        var btn = document.getElementById('ih-max-patients-save');
+        if (!btn || btn.__ihBound) return;
+
+        btn.addEventListener('click', function () {
+            var pid = getPid();
+            if (!pid) { setFlash(t('no_provider'), false); return; }
+
+            var value = readValue();
+
+            btn.disabled = true;
+            var old = btn.textContent;
+            btn.textContent = t('saving');
+            setFlash('', true);
+
+            var data = { provider_id: pid, max_patients: value };
+            data[csrfFieldName()] = csrfValue();
+
+            ajaxPostWithCiFallback('interhop/providerslimit/upsert', data)
+                .then(function () {
+                    setFlash(t('saved'), true);
+                    hydrateForCurrent();
+                })
+                .fail(function (xhr) {
+                    console.error('[IH] save error', xhr);
+                    setFlash(t('error') + (xhr && xhr.status ? ' (' + xhr.status + ')' : ''), false);
+                })
+                .always(function () {
+                    btn.textContent = old;
+                    // on remet l'état “logique” (édition ou non)
+                    setEnabled(__ihEditing);
+                });
+        });
+
+        btn.__ihBound = true;
+    }
+
+    // -------------------------------------------------
+    // Triggers (sélection / éditer / annuler / nouveau + mutation DOM)
+    // -------------------------------------------------
+    function wireHydrationTriggers() {
+        var $page = $(SEL.page);
+
+        // Sélection : form en lecture seule
+        $page.on('click', SEL.row, function () {
+            setTimeout(function () {
+                injectFieldOnce();
+                __ihEditing = false;
+                setEnabled(false);
+                hydrateForCurrent();
+            }, 0);
+        });
+
+        // Éditer : on FORCE l’édition à true pour notre champ
+        $page.on('click', SEL.editBtn, function () {
+            setTimeout(function () {
+                injectFieldOnce();
+                __ihEditing = true;
+                setEnabled(true);     // <- ON FORCE enabled ici
+                hydrateForCurrent();
+            }, 0);
+        });
+
+        // Annuler : retour en lecture seule
+        $page.on('click', SEL.cancelBtn, function () {
+            setTimeout(function () {
+                injectFieldOnce();
+                __ihEditing = false;
+                setEnabled(false);
+                hydrateForCurrent();
+            }, 0);
+        });
+
+        // Nouveau : champ vide en mode édition
+        $page.on('click', SEL.addBtn, function () {
+            setTimeout(function () {
+                injectFieldOnce();
+                __ihEditing = true;
+                var input = document.getElementById('interhop-max-patients');
+                if (input) input.value = '';
+                setEnabled(true);
+            }, 0);
+        });
+
+        // Le core réécrit parfois la zone détails → on ré-applique notre état
+        var details = document.querySelector(SEL.recordDetails);
+        if (details && !details.__ihObserved) {
+            details.__ihObserved = true;
+            var mo = new MutationObserver(function () {
+                clearTimeout(details.__ihDebounce);
+                details.__ihDebounce = setTimeout(function () {
+                    injectFieldOnce();
+                    setEnabled(__ihEditing);
+                    hydrateForCurrent();
+                }, 50);
+            });
+            mo.observe(details, { childList: true, subtree: true });
+        }
+    }
+
+    // -------------------------------------------------
+    // Boot
+    // -------------------------------------------------
+    $(function () {
+        injectFieldOnce();          // crée le bloc dans le form profil
+        setEnabled(false);          // initialement : lecture seule
+        wireHydrationTriggers();    // écoute les clics existants
+
+        setTimeout(function () {
+            hydrateForCurrent();    // premier passage si un record est déjà affiché
+        }, 0);
+    });
+
 })();

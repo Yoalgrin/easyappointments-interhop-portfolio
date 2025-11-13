@@ -7,6 +7,7 @@ class InterhopProvidersLimit extends CI_Controller
         parent::__construct();
         $this->load->database();
         $this->output->set_content_type('application/json; charset=utf-8');
+        $this->load->model('Interhop_providers_limit_model', 'LimitModel');
     }
 
     private function is_admin(): bool {
@@ -20,71 +21,75 @@ class InterhopProvidersLimit extends CI_Controller
     }
 
     // GET /interhop/providerslimit/get/{provider_id}
-    public function get($provider_id)
+    public function get($provider_id = null)
     {
         $pid = (int)$provider_id;
-
-        // Autoriser admin OU provider qui lit sa propre limite
-        if (!($this->is_admin() || ($this->is_provider() && $this->user_id() === $pid))) {
-            return $this->output->set_status_header(403)
-                ->set_output(json_encode(['success'=>false,'message'=>'Forbidden']));
-        }
-
-        $row = $this->db->get_where('ea_interhop_providers_limits', ['provider_id' => $pid])->row_array();
-        $res = ['provider_id'=>$pid, 'max_patients'=>$row['max_patients'] ?? null];
-        return $this->output->set_output(json_encode(['success'=>true,'data'=>$res]));
-    }
-
-    // POST /interhop/providerslimit/upsert
-    public function upsert()
-    {
-        $provider_id  = (int)$this->input->post('provider_id');
-        $max_patients = $this->input->post('max_patients', true);
-
-        // Autoriser admin OU provider qui modifie sa propre limite
-        if (!($this->is_admin() || ($this->is_provider() && $this->user_id() === $provider_id))) {
-            return $this->output->set_status_header(403)
-                ->set_output(json_encode(['success'=>false,'message'=>'Forbidden']));
-        }
-
-        if ($provider_id <= 0) {
-            return $this->output->set_status_header(400)
-                ->set_output(json_encode(['success'=>false,'message'=>'provider_id manquant']));
-        }
-
-        if ($max_patients === '' || $max_patients === null) {
-            $max_patients = null;
-        } else {
-            $max_patients = max(1, (int)$max_patients);
-        }
-
-        $data = ['provider_id'=>$provider_id,'max_patients'=>$max_patients,'updated_at'=>date('Y-m-d H:i:s'),
-            'updated_by'=>$this->user_id()];
-
-        $exists = $this->db->get_where('ea_interhop_providers_limits', ['provider_id'=>$provider_id])->row_array();
-        if ($exists) {
-            $this->db->where('provider_id', $provider_id)->update('ea_interhop_providers_limits', $data);
-        } else {
-            $this->db->insert('ea_interhop_providers_limits', $data);
-        }
-
-        return $this->output->set_output(json_encode(['success'=>true]));
-    }
-    public function get_self()
-    {
-        $pid = $this->user_id();
         if ($pid <= 0) {
             return $this->output->set_output(json_encode(['success'=>true,'data'=>['provider_id'=>null,'max_patients'=>null]]));
         }
 
-        // provider: peut lire sa propre limite ; admin: peut tout lire
+        // provider lit sa propre limite ; admin lit tout
         if (!($this->is_admin() || ($this->is_provider() && $this->user_id() === $pid))) {
             return $this->output->set_status_header(403)
                 ->set_output(json_encode(['success'=>false,'message'=>'Forbidden']));
         }
 
-        $row = $this->db->get_where('ea_interhop_providers_limits', ['provider_id' => $pid])->row_array();
-        $res = ['provider_id'=>$pid, 'max_patients'=>$row['max_patients'] ?? null];
+        $row = $this->LimitModel->get_by_provider($pid);
+        $max = null;
+        if ($row && array_key_exists('max_patients', $row) && $row['max_patients'] !== null) {
+            $max = (int)$row['max_patients'];
+        }
+        $res = ['provider_id' => $pid, 'max_patients' => $max];
+
         return $this->output->set_output(json_encode(['success'=>true,'data'=>$res]));
     }
+
+    // POST /interhop/providerslimit/set  (écriture directe côté Admin)
+    public function set()
+    {
+        $pid = (int)$this->input->post('provider_id');
+        if ($pid <= 0) {
+            return $this->output->set_status_header(400)
+                ->set_output(json_encode(['success'=>false,'message'=>'provider_id required']));
+        }
+        if (!$this->is_admin()) {
+            return $this->output->set_status_header(403)
+                ->set_output(json_encode(['success'=>false,'message'=>'Forbidden']));
+        }
+
+        // Valeur reçue par le hidden : '' => NULL ; n>=1 => int
+        $max = $this->input->post('max_patients', true);
+        $max = (is_string($max) ? trim($max) : $max);
+        if ($max === '' || $max === '0' || $max === 0 || $max === null) {
+            $max = null;
+        } else {
+            $max = (int)$max;
+            if ($max < 1) $max = null;
+        }
+
+        $ok = $this->LimitModel->upsert($pid, $max, (int)$this->user_id());
+        if (!$ok) {
+            return $this->output->set_status_header(500)
+                ->set_output(json_encode(['success'=>false,'message'=>'db error']));
+        }
+        return $this->output->set_output(json_encode(['success'=>true,'data'=>['provider_id'=>$pid,'max_patients'=>$max]]));
+    }
+    // POST /interhop/providerslimit/upsert  (alias de set, pour le JS)
+    public function upsert()
+    {
+        return $this->set();
+    }
+    public function get_self()
+    {
+        // Exemple : pour un soignant qui lit sa propre limite
+        $pid = $this->user_id();
+        if ($pid <= 0 || !$this->is_provider()) {
+            return $this->output->set_output(json_encode([
+                'success' => true,
+                'data' => ['provider_id' => null, 'max_patients' => null]
+            ]));
+        }
+        return $this->get($pid);
+    }
+
 }

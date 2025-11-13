@@ -10,7 +10,6 @@ class InterhopAccountHook
      * Hook: post_controller
      */
 
-
     public function afterAccountSave(): void
 
     {
@@ -27,7 +26,7 @@ class InterhopAccountHook
         $method = (string)($RTR->method ?? '');
         if (!(strcasecmp($class, 'Account') === 0 && strcasecmp($method, 'save') === 0)) return;
 
-        // (optionnel) limiter au rôle provider
+        // limitation au rôle provider
         $role = (string)$CI->session->userdata('role_slug');
         if ($role && strcasecmp($role, 'provider') !== 0 && $role !== DB_SLUG_PROVIDER) {
             return;

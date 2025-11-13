@@ -135,6 +135,8 @@ class InterhopTranslationHook
       };
     } catch(e){}
   }
+console.debug('[IH i18n] exported keys:', Object.keys(add));
+  window.EALang.__ih_exported = true;  
 })();
 </script>
 HTML;

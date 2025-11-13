@@ -25,6 +25,8 @@ class InterhopAssetsHook
         // Récupération du buffer rendu par CI
         $output = $CI->output->get_output();
         if (!is_string($output)) { $output = ''; }
+
+        // Classe contrôleur (account/providers attendu côté back-office)
         $class = strtolower((string)($CI->router->class ?? ''));
         if ($class !== 'account' && $class !== 'providers') { echo $output; return; }
 
@@ -37,20 +39,19 @@ class InterhopAssetsHook
         if ($httpMethod !== 'GET') { echo $output; return; }
 
         // 1.2 Ne jamais injecter sur les routes de login/validate, quelle que soit la classe contrôleur
-        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        $uri      = $_SERVER['REQUEST_URI'] ?? '';
         $uriLower = strtolower($uri);
         if (
-            strpos($uriLower, '/login') !== false ||
+            strpos($uriLower, '/login')    !== false ||
             strpos($uriLower, '/validate') !== false ||
-            strpos($uriLower, '/auth') !== false   ||   // garde large (auth)
-            strpos($uriLower, '/api/') !== false   ||   // endpoints API
-            strpos($uriLower, '/ajax/') !== false       // endpoints ajax
+            strpos($uriLower, '/auth')     !== false ||   // garde large (auth)
+            strpos($uriLower, '/api/')     !== false ||   // endpoints API
+            strpos($uriLower, '/ajax/')    !== false      // endpoints ajax
         ) {
             echo $output; return;
         }
 
         // 1.3 Ne pas injecter si la réponse n'est pas une page HTML complète
-        // (évite d'altérer du JSON ou des fragments)
         if (stripos($output, '</body>') === false) { echo $output; return; }
 
         // 1.4 Ne pas injecter si l'appel est AJAX ou si les en-têtes suggèrent du JSON
@@ -69,17 +70,13 @@ class InterhopAssetsHook
             strpos($ctypeOut, 'json') !== false
         ) { echo $output; return; }
 
-        $class  = strtolower((string)($CI->router->class  ?? ''));
-
         // -------------------------------
         // 2) Ciblage contrôleurs/méthodes
         // -------------------------------
         $method = strtolower((string)($CI->router->method ?? ''));
 
         // Ne viser que Account / Providers (back-office)
-        if (!in_array($class, ['account', 'providers'], true)) {
-            echo $output; return;
-        }
+        if (!in_array($class, ['account', 'providers'], true)) { echo $output; return; }
 
         // Facultatif : limiter aux pages vues (évite d’injecter sur des endpoints techniques)
         if ($method && !in_array($method, ['index', 'edit', 'view', 'details'], true)) {
@@ -110,18 +107,42 @@ class InterhopAssetsHook
             '}else if(window.raw==null||typeof window.raw!=="object"){window.raw={};}}catch(_){window.raw={};}})();</script>';
 
         if ($class === 'account') {
+            // --- ACCOUNT ---
             $accPath = FCPATH . 'assets/js/pages/interhop-account-override.js';
             if (is_file($accPath)) {
                 $tags[] = '<script src="' . base_url('assets/js/pages/interhop-account-override.js') .
                     '?v=' . rawurlencode($this->assetStamp($accPath)) . '"></script>';
                 $tags[] = '<script>try{console.debug("[InterHop] account override injected");}catch(_){}</script>';
             }
-        } else { // providers
-            $provPath = FCPATH . 'assets/js/pages/interhop-providers-override.js';
-            if (is_file($provPath)) {
+        } else {
+            // --- PROVIDERS ---
+            // Injecte d'abord un bloc i18n minimal (fallback front)
+            $i18n = [
+                'max_patients'             => $CI->lang->line('max_patients') ?: 'Limite de patients',
+                'max_patients_placeholder' => $CI->lang->line('max_patients_placeholder') ?: 'ex : 25 (laisser vide pour illimité)',
+                'max_patients_help'        => $CI->lang->line('max_patients_help') ?: 'Nombre maximum de patients autorisés pour ce soignant (vide = illimité).',
+                'max_patients_invalid'     => $CI->lang->line('max_patients_invalid') ?: 'La limite doit être un entier ≥ 1 ou vide.',
+            ];
+            $json = json_encode($i18n, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $tags[] = '<script>(function(){window.EALang=window.EALang||{};var add='.$json.';
+                        for(var k in add){if(Object.prototype.hasOwnProperty.call(add,k)&&!EALang[k]){EALang[k]=add[k];}}
+                        if(typeof window.lang==="function"){try{var _orig=window.lang;window.lang=function(key){try{var v=_orig(key);if(v&&v!==key)return v;}catch(e){}return (window.EALang&&window.EALang[key])?window.EALang[key]:key;};}catch(e){}}
+            console.debug("[IH i18n] providers fallback loaded:",Object.keys(add));})();</script>';
+
+            // 1) Override HTTP (normalise /providers/search -> Array) AVANT l’override UI
+            $provHttpPath = FCPATH . 'assets/js/pages/interhop-providers-http-override.js';
+            if (is_file($provHttpPath)) {
+                $tags[] = '<script src="' . base_url('assets/js/pages/interhop-providers-http-override.js') .
+                    '?v=' . rawurlencode($this->assetStamp($provHttpPath)) . '"></script>';
+                $tags[] = '<script>try{console.debug("[InterHop] providers HTTP override injected");}catch(_){}</script>';
+            }
+
+            // 2) Override UI (injection champ max_patients, etc.)
+            $provUiPath = FCPATH . 'assets/js/pages/interhop-providers-override.js';
+            if (is_file($provUiPath)) {
                 $tags[] = '<script src="' . base_url('assets/js/pages/interhop-providers-override.js') .
-                    '?v=' . rawurlencode($this->assetStamp($provPath)) . '"></script>';
-                $tags[] = '<script>try{console.debug("[InterHop] providers override injected");}catch(_){}</script>';
+                    '?v=' . rawurlencode($this->assetStamp($provUiPath)) . '"></script>';
+                $tags[] = '<script>try{console.debug("[InterHop] providers UI override injected");}catch(_){}</script>';
             }
         }
 
@@ -129,7 +150,6 @@ class InterhopAssetsHook
         $final = $this->injectBeforeClosingBody($output, implode("\n", $tags));
         echo $final; return;
     }
-
 
     /**
      * Génère un identifiant de version à partir du mtime du fichier

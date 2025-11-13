@@ -318,7 +318,7 @@ $config['directory_trigger'] = 'd'; // experimental not currently in use
 |
 */
 $config['log_threshold'] = 4;
-$config['log_path']      = '';
+$config['log_path']      = APPPATH.'logs/';
 $config['log_file_permissions'] = 0644;
 /*
 |--------------------------------------------------------------------------
