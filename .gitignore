@@ -38,5 +38,7 @@ zzz_probe.php
 # Build artefacts
 assets/**/*.min.js
 assets/**/*.min.css
+assets/**/**/*.min.js
+assets/**/**/*.min.css
 easyappointments-*.zip
 
