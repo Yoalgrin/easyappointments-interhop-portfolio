@@ -131,6 +131,17 @@ GET /interhop/providerslimit/get_self
 - Ajout d’une contrainte métier : refuser une prise de RDV si limite atteinte
 - Tableau récapitulatif par soignant dans l’admin
 
+- Les 2 points suivants ne bloquent pas le fonctionnement de la feature
+  mais permettraient d’améliorer la cohérence entre le modèle logique
+  et le schéma physique de la base de données:
+- Poser une contrainte FOREIGN KEY explicite entre  
+  `ea_interhop_providers_limits.provider_id` et `ea_users.id`
+  pour refléter en base la relation déjà appliquée côté application.
+  (ATTENTION : à faire via une migration dédiée, testée sur une copie de la base.)
+- Nettoyer le reliquat de `max_patients` dans `ea_user_settings`
+  (colonne aujourd'hui non utilisée et toujours à NULL),
+  ou documenter clairement qu’il s’agit d’un vestige d’un design initial.
+
 ---
 
 ## 🧾 Auteur
