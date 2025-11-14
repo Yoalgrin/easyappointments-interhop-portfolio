@@ -228,15 +228,7 @@ class Providers_model extends EA_Model
             $this->cast($provider);
             $provider['settings'] = $this->get_settings($provider['id']);
             $provider['services'] = $this->get_service_ids($provider['id']);
-            $this->attach_interhop_limit($provider);
         }
-        $provider['settings'] = $this->get_settings($provider['id']);
-        $provider['services'] = $this->get_service_ids($provider['id']);
-
-        $this->attach_interhop_limit($provider); // ← AJOUT
-
-        return $provider;
-
         return $providers;
     }
 
@@ -658,7 +650,6 @@ class Providers_model extends EA_Model
             $this->cast($provider);
             $provider['settings'] = $this->get_settings($provider['id']);
             $provider['services'] = $this->get_service_ids($provider['id']);
-            $this->attach_interhop_limit($provider);
         }
 
         return $providers;
@@ -717,7 +708,6 @@ class Providers_model extends EA_Model
             $this->cast($provider);
             $provider['settings'] = $this->get_settings($provider['id']);
             $provider['services'] = $this->get_service_ids($provider['id']);
-            $this->attach_interhop_limit($provider);
         }
 
         return $providers;
@@ -979,67 +969,4 @@ class Providers_model extends EA_Model
 
         $provider = $decoded_resource;
     }
-
-    /**
-     * Quickly check if a service is assigned to a provider.
-     *
-     * @param int $provider_id
-     * @param int $service_id
-     *
-     * @return bool
-     */
-    public function is_service_supported(int $provider_id, int $service_id): bool
-    {
-        $provider = $this->find($provider_id);
-
-        return in_array($service_id, $provider['services']);
-    }
-    public function save_max_patients(int $provider_id, ?int $limit): void
-    {
-        // Table dédiée : interhop_ea_providers_limit (adapter si ton nom diffère)
-        $table = 'ea_interhop_providers_limits';
-
-        if ($limit === null) {
-            // NULL = illimité → on supprime la ligne pour rester propre
-            $this->db->where('provider_id', $provider_id)->delete($table);
-            return;
-        }
-
-        // Existe déjà ?
-        $exists = $this->db->select('provider_id')
-                ->from($table)
-                ->where('provider_id', $provider_id)
-                ->get()->num_rows() > 0;
-
-        if ($exists) {
-            $this->db->where('provider_id', $provider_id)
-                ->update($table, ['max_patients' => $limit]);
-        } else {
-            $this->db->insert($table, [
-                'provider_id'  => $provider_id,
-                'max_patients' => $limit,
-            ]);
-        }
-    }
-
-    public function get_max_patients(int $provider_id): ?int
-    {
-        $table = 'ea_interhop_providers_limits';
-
-        $row = $this->db->select('max_patients')
-            ->from($table)
-            ->where('provider_id', $provider_id)
-            ->get()->row_array();
-
-        return $row ? (int)$row['max_patients'] : null;
-    }
-    private function attach_interhop_limit(array &$provider): void
-    {
-        if (!isset($provider['id'])) {
-            return;
-        }
-        $provider['interhop_max_patients'] = $this->get_max_patients((int)$provider['id']); // NULL = illimité
-    }
-
-
 }

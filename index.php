@@ -113,6 +113,7 @@ if ($app_env) {
     define('ENVIRONMENT', Config::DEBUG_MODE ? 'development' : 'production');
 }
 
+
 /*
  *---------------------------------------------------------------
  * ERROR REPORTING
