@@ -15,7 +15,7 @@
  * This module implements the functionality of the account page.
  */
 App.Pages.Account = (function () {
-    const $maxPatients = $('#interhop-max-patients');
+
     const $userId = $('#user-id');
     const $firstName = $('#first-name');
     const $lastName = $('#last-name');
@@ -115,7 +115,6 @@ App.Pages.Account = (function () {
         $retypePassword.val('');
         $calendarView.val(account.settings.calendar_view);
         notifications.prop('checked', Boolean(Number(account.settings.notifications)));
-        $maxPatients.val(account.interhop_max_patients ?? '');
 
     }
 
@@ -125,7 +124,6 @@ App.Pages.Account = (function () {
      * @return {Object}
      */
     function serialize() {
-        const raw = $maxPatients.val();
         const interhopMax = (typeof raw === 'string' ? raw.trim() : raw);
 
         return {

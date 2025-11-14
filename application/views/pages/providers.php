@@ -229,28 +229,6 @@
                                     'grouped_timezones' => vars('grouped_timezones'),
                                 ]); ?>
                             </div>
-                            <div class="form-group" id="interhop-max-patients-wrap">
-                                <label for="interhop-max-patients">
-                                    <?= lang('max_patients') ?>
-                                    <small class="text-muted">(<?= lang('max_patients_info') ?>)</small>
-                                </label>
-
-                                <input
-                                    type="number"
-                                    class="form-control"
-                                    id="interhop-max-patients"
-                                    name="interhop_max_patients"
-                                    placeholder="<?= lang('max_patients_placeholder') ?>"
-                                    min="1" step="1"
-                                    value="<?= isset($provider['interhop_max_patients']) && $provider['interhop_max_patients'] !== null
-                                        ? html_escape((string)$provider['interhop_max_patients'])
-                                        : '' ?>"
-                                />
-
-                                <small class="form-text text-muted">
-                                    <?= lang('max_patients_help') /* Ex: “Laisser vide = illimité.” */ ?>
-                                </small>
-                            </div>
 
                             <?php if (setting('ldap_is_active')): ?>
                                 <div class="mb-3">

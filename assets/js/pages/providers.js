@@ -188,7 +188,7 @@ App.Pages.Providers = (function () {
                 }
             });
 
-            // Vérifie 'max_patients' : vide = illimité ; sinon entier >= 1
+            // max_patients : '' = illimité ; sinon entier >= 1
             const rawMax = ($maxPatients.val() || '').trim();
             provider.max_patients = rawMax === '' ? '' : String(Math.max(1, parseInt(rawMax, 10)));
 
@@ -313,16 +313,6 @@ App.Pages.Providers = (function () {
             if ($username.attr('already-exists') === 'true') {
                 $username.addClass('is-invalid');
                 throw new Error(lang('username_already_exists'));
-            }
-
-            // Validate max_patients : vide = illimité ; sinon entier >= 1
-            const rawMaxPatients = ($maxPatients.val() || '').trim();
-            if (rawMaxPatients !== '') {
-                const n = parseInt(rawMaxPatients, 10);
-                if (isNaN(n) || n < 1) {
-                    $maxPatients.addClass('is-invalid');
-                    throw new Error(lang('max_patients_invalid') || 'Valeur invalide pour la limite de patients.');
-                }
             }
 
             return true;

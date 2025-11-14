@@ -132,12 +132,16 @@
 <?php section('scripts'); ?>
 
 <!-- FullCalendar CSS (core + daygrid + timegrid + list) -->
+<!--en FC V6 il n'y a pas besoin de mettre les CSS
 <link rel="stylesheet" href="<?= asset_url('assets/vendor/fullcalendar/index.global.css') ?>">
 <link rel="stylesheet" href="<?= asset_url('assets/vendor/fullcalendar-daygrid/index.global.css') ?>">
 <link rel="stylesheet" href="<?= asset_url('assets/vendor/fullcalendar-timegrid/index.global.css') ?>">
 <link rel="stylesheet" href="<?= asset_url('assets/vendor/fullcalendar-list/index.global.css') ?>">
-
+-->
 <!-- FullCalendar core + plugins requis -->
+<script src="<?= asset_url('assets/vendor/moment/moment.js') ?>"></script>
+<script src="<?= asset_url('assets/vendor/moment-timezone/moment-timezone-with-data.js') ?>"></script>
+
 <script src="<?= asset_url('assets/vendor/fullcalendar/index.global.js') ?>"></script>
 <script src="<?= asset_url('assets/vendor/fullcalendar-interaction/index.global.js') ?>"></script>
 <script src="<?= asset_url('assets/vendor/fullcalendar-daygrid/index.global.js') ?>"></script>
