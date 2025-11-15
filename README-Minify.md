@@ -9,7 +9,8 @@ Sans régénération, les modifications faites dans les sources `.js/.css` ne so
 
 ## Comment ça marche
 - En **dev** (`debug=true`) : les sources non minifiées sont servies.
-- En **prod** (`debug=false`) : `asset_url()` remplace automatiquement `.js` → `.min.js` et `.css` → `.min.css`.
+- En **prod** (`debug=false`) : `asset_url()` asset_url() essaie d’abord la version minifiée (`.min.js`, `.min.css`) 
+  en vérifiant le fichier sur le disque, puis bascule sur la version normale (`.js / .css`) si la version minifiée n’existe pas..
 - Le `gulpfile.js` fournit les tâches de build pour générer les `.min`.
 
 ## Commandes utiles
@@ -21,7 +22,7 @@ Sans régénération, les modifications faites dans les sources `.js/.css` ne so
 ```
 ## Passer en mode **prod** (`debug=false`) :
 ```bash
-npx run build ou npm start 
+npm run build ou npm start 
 ```
 (régénère tous les fichiers .min) voir plus bas pour les versions courtes.
 
