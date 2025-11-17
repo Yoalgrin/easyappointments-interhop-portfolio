@@ -11,63 +11,159 @@
  * @since       v1.3.0
  * ---------------------------------------------------------------------------- */
 
-/**
- * Assets URL helper function.
- *
- * This function will create an asset file URL that includes a cache busting parameter in order
- * to invalidate the browser cache in case of an update.
- *
- * @param string $uri Relative URI (just like the one used in the base_url helper).
- * @param string|null $protocol Valid URI protocol.
- *
- * @return string Returns the final asset URL.
- */
-/**
- * Assets URL helper with min/non-min fallback.
- *
- * Usage in views:
- *   <script src="<?= asset_url('assets/js/vendor.js') ?>"></script>
- *   <script src="<?= asset_url('assets/js/app.js') ?>"></script>
- *   <script src="<?= asset_url('assets/js/pages/account.js') ?>"></script>
- *   <link rel="stylesheet" href="<?= asset_url('assets/css/app.css') ?>">
- *
- * In debug=true -> try .js first, fallback to .min.js if missing.
- * In debug=false -> try .min.js first, fallback to .js if missing.
- */
+// ------------------------------------------------------------------------
+// Asset URL - version d'origine (EasyAppointments) [conservée pour mémoire]
+// ------------------------------------------------------------------------
+/*
+function asset_url(string $uri = '', ?string $protocol = null): string
+{
+    $debug = config('debug');
+
+    $cache_busting_token = '?' . config('cache_busting_token');
+
+    if (str_contains(basename($uri), '.js') && !str_contains(basename($uri), '.min.js') && !$debug) {
+        $uri = str_replace('.js', '.min.js', $uri);
+    }
+
+    if (str_contains(basename($uri), '.css') && !str_contains(basename($uri), '.min.css') && !$debug) {
+        $uri = str_replace('.css', '.min.css', $uri);
+    }
+
+    return base_url($uri . $cache_busting_token, $protocol);
+}
+*/
+
+// ------------------------------------------------------------------------
+// Asset URL - version InterHop sécurisée (minify gardé sous contrôle)
+// ------------------------------------------------------------------------
+
 function asset_url(string $uri = '', ?string $protocol = null): string
 {
     $debug = (bool) config('debug');
     $cache_busting_token = '?' . config('cache_busting_token');
 
-    // Paths
+    // On travaille toujours sur un chemin relatif nettoyé
     $rel = ltrim($uri, '/');
-    $ext = pathinfo($rel, PATHINFO_EXTENSION);
-    $is_js  = ($ext === 'js');
-    $is_css = ($ext === 'css');
 
-    if (!$is_js && !$is_css) {
-        // Not a JS/CSS file: just return as-is with cache-busting
+    // 1. En mode debug : comportement "source only", on ne touche à rien
+    if ($debug === true) {
         return base_url($rel . $cache_busting_token, $protocol);
     }
 
-    // Build min / non-min variants
-    $suffix = $is_js ? 'js' : 'css';
-
-    // Normalize both variants regardless of what caller passed
-    $rel_min  = preg_replace('/\.'.$suffix.'$/', '.min.'.$suffix, preg_replace('/\.min\.'.$suffix.'$/', '.'.$suffix, $rel));
-    $rel_min  = preg_replace('/\.'.$suffix.'$/', '.min.'.$suffix, $rel_min); // ensure .min.suffix
-    $rel_norm = preg_replace('/\.min\.'.$suffix.'$/', '.'.$suffix, $rel);
-
-    // Decide order based on debug
-    $candidates = $debug ? [$rel_norm, $rel_min] : [$rel_min, $rel_norm];
-
-    foreach ($candidates as $cand) {
-        $abs = rtrim(FCPATH, '/\\') . '/' . ltrim($cand, '/');
-        if (is_file($abs)) {
-            return base_url($cand . $cache_busting_token, $protocol);
-        }
+    // 2. En mode prod : on applique la logique minify uniquement sur les assets autorisés
+    if (ea_should_minify($rel)) {
+        $rel = ea_pick_minified_if_exists($rel);
     }
 
-    // Last resort: return first candidate (even if 404) to make the failure visible
-    return base_url($candidates[0] . $cache_busting_token, $protocol);
+    // 3. URL finale (avec cache-busting)
+    return base_url($rel . $cache_busting_token, $protocol);
+}
+
+// ------------------------------------------------------------------------
+// Garde-fou : décide sur quels fichiers on a le droit d'essayer de minifier
+// ------------------------------------------------------------------------
+
+if (!function_exists('ea_should_minify')) {
+    function ea_should_minify(string $uri): bool
+    {
+        // On ne minifie que les .js / .css
+        $ext = pathinfo($uri, PATHINFO_EXTENSION);
+        if (!in_array($ext, ['js', 'css'], true)) {
+            return false;
+        }
+
+        $base = basename($uri);
+
+        // Si c'est déjà un .min.js / .min.css, on ne tente rien
+        if (str_contains($base, '.min.' . $ext)) {
+            return false;
+        }
+
+        // Récupérer la config si elle existe, sinon utiliser des valeurs par défaut
+        $CI =& get_instance();
+
+        // Dossiers EXCLUS : vendors / libs externes (on ne les touche jamais)
+        $denyPrefixes = $CI->config->item('ea_minify_deny_prefixes') ?? [
+            'assets/ext/',
+            'assets/vendor/',
+            'assets/libs/',
+            'assets/plugins/',
+        ];
+
+        foreach ($denyPrefixes as $prefix) {
+            if (strpos($uri, $prefix) === 0) {
+                return false;
+            }
+        }
+
+        // Dossiers AUTORISÉS : JS/CSS applicatifs + overrides InterHop
+        $allowPrefixes = $CI->config->item('ea_minify_allow_prefixes') ?? [
+            'assets/js/',
+            'assets/css/',
+            'assets/interhop/',
+            'assets/js/pages/interhop-',
+        ];
+
+        foreach ($allowPrefixes as $prefix) {
+            if (strpos($uri, $prefix) === 0) {
+                return true;
+            }
+        }
+
+        // Par défaut : on ne minifie pas
+        return false;
+    }
+}
+
+// ------------------------------------------------------------------------
+// Choix du bon fichier : source vs .min, avec vérification des dates
+// ------------------------------------------------------------------------
+
+if (!function_exists('ea_pick_minified_if_exists')) {
+    function ea_pick_minified_if_exists(string $uri): string
+    {
+        $ext = pathinfo($uri, PATHINFO_EXTENSION);
+
+        // On ne gère que .js / .css
+        if (!in_array($ext, ['js', 'css'], true)) {
+            return $uri;
+        }
+
+        // Chemins physiques vers source et min
+        $srcPath = rtrim(FCPATH, '/\\') . '/' . ltrim($uri, '/');
+
+        // Construire le chemin potentiel vers le .min : file.js -> file.min.js
+        $minUri  = preg_replace('/\.' . $ext . '$/', '.min.' . $ext, $uri);
+        $minPath = rtrim(FCPATH, '/\\') . '/' . ltrim($minUri, '/');
+
+        $srcExists = is_file($srcPath);
+        $minExists = is_file($minPath);
+
+        // 1. Si le .min n'existe pas -> on garde le fichier original
+        if (!$minExists) {
+            return $uri;
+        }
+
+        // 2. Si le source n'existe pas mais le .min existe -> on utilise le .min
+        if (!$srcExists && $minExists) {
+            return $minUri;
+        }
+
+        // 3. Si les deux existent, on compare les dates de modification
+        if ($srcExists && $minExists) {
+            $srcMtime = filemtime($srcPath);
+            $minMtime = filemtime($minPath);
+
+            // Si le .min est plus vieux que la source : obsolète -> on garde la source
+            if ($minMtime < $srcMtime) {
+                return $uri;
+            }
+
+            // Sinon : .min existe et est au moins aussi récent -> on l'utilise
+            return $minUri;
+        }
+
+        // 4. Cas improbable (aucun fichier valide) : on renvoie l'URI de base
+        return $uri;
+    }
 }
