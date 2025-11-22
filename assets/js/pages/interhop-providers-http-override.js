@@ -111,7 +111,8 @@
         if (!p.settings || typeof p.settings !== 'object') p.settings = {};
         var s = p.settings;
 
-        // Champs potentiellement JSON — on force des chaînes parseables SANS supposer l'existence
+        // Normalisation JSON — on garantit une chaîne JSON parseable,
+        // même si le backend renvoie NULL, un objet ou une valeur incohérente.
         s.working_plan = asValidJsonString(
             (s.working_plan != null ? s.working_plan : '{}'),
             '{}'
@@ -152,7 +153,7 @@
         var __origDisplay = App.Pages.Providers.display;
         App.Pages.Providers.display = function (provider) {
             try {
-                // sécurité : garantir aussi ici l'existence de $maxPatients
+                // sécurité : garantir l'existence de $maxPatients
                 try {
                     if (window.jQuery && !window.$maxPatients) {
                         window.$maxPatients = window.jQuery('<input type="number" id="max-patients-legacy" style="display:none">');
@@ -161,7 +162,7 @@
 
                 var p = prepareForDisplay(provider);
 
-                // +++ PATCH: mémoriser l'ID soignant courant +++
+                // Mémorise l’ID du soignant courant pour les autres overrides
                 try {
                     window.__IH_CURRENT_PROVIDER_ID__ =
                         (p && (p.id || p.provider_id || (p.user && (p.user.id || p.user.user_id)))) || null;

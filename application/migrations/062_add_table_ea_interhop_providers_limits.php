@@ -47,7 +47,7 @@ class Migration_Add_table_ea_interhop_providers_limits extends CI_Migration
             $this->dbforge->create_table('ea_interhop_providers_limits', TRUE);
 
             // Index utile
-            @$this->db->query('CREATE INDEX idx_eaipl_updated_by ON `ea_interhop_providers_limits`(`updated_by`)');
+            $this->db->query('CREATE INDEX idx_eaipl_updated_by ON `ea_interhop_providers_limits`(`updated_by`)');
 
             // FKs si tables cibles présentes
             if ($this->db->table_exists('ea_users')) {
@@ -59,7 +59,7 @@ class Migration_Add_table_ea_interhop_providers_limits extends CI_Migration
                     ON DELETE CASCADE ON UPDATE CASCADE
                 ");
                 // updated_by -> ea_users(id)
-                @$this->db->query("
+                $this->db->query("
                     ALTER TABLE `ea_interhop_providers_limits`
                     ADD CONSTRAINT `fk_interhop_limits_updated_by`
                     FOREIGN KEY (`updated_by`) REFERENCES `ea_users`(`id`)
@@ -69,7 +69,7 @@ class Migration_Add_table_ea_interhop_providers_limits extends CI_Migration
         } else {
             // Normalisations idempotentes
             if ($this->db->field_exists('provider_id', 'ea_interhop_providers_limits')) {
-                @$this->db->query("
+                $this->db->query("
                     ALTER TABLE `ea_interhop_providers_limits`
                     MODIFY `provider_id` INT(11) UNSIGNED NOT NULL
                 ");
@@ -80,7 +80,7 @@ class Migration_Add_table_ea_interhop_providers_limits extends CI_Migration
             }
 
             if ($this->db->field_exists('max_patients', 'ea_interhop_providers_limits')) {
-                @$this->db->query("
+                $this->db->query("
                     ALTER TABLE `ea_interhop_providers_limits`
                     MODIFY `max_patients` INT(10) UNSIGNED NULL DEFAULT NULL
                 ");
@@ -95,7 +95,7 @@ class Migration_Add_table_ea_interhop_providers_limits extends CI_Migration
                     'updated_at' => ['type'=>'TIMESTAMP','null'=>TRUE,'default'=>NULL],
                 ]);
             } else {
-                @$this->db->query("
+                $this->db->query("
                     ALTER TABLE `ea_interhop_providers_limits`
                     MODIFY `updated_at` TIMESTAMP NULL DEFAULT NULL
                 ");
@@ -106,34 +106,34 @@ class Migration_Add_table_ea_interhop_providers_limits extends CI_Migration
                     'updated_by' => ['type'=>'INT','constraint'=>11,'unsigned'=>TRUE,'null'=>TRUE,'default'=>NULL],
                 ]);
             } else {
-                @$this->db->query("
+                $this->db->query("
                     ALTER TABLE `ea_interhop_providers_limits`
                     MODIFY `updated_by` INT(11) UNSIGNED NULL DEFAULT NULL
                 ");
             }
 
             // PK 1:1 (au cas où)
-            @$this->db->query('ALTER TABLE `ea_interhop_providers_limits` DROP PRIMARY KEY');
-            @$this->db->query('ALTER TABLE `ea_interhop_providers_limits` ADD PRIMARY KEY (`provider_id`)');
+            $this->db->query('ALTER TABLE `ea_interhop_providers_limits` DROP PRIMARY KEY');
+            $this->db->query('ALTER TABLE `ea_interhop_providers_limits` ADD PRIMARY KEY (`provider_id`)');
 
             // Index updated_by (idempotent)
-            @$this->db->query('CREATE INDEX idx_eaipl_updated_by ON `ea_interhop_providers_limits`(`updated_by`)');
+            $this->db->query('CREATE INDEX idx_eaipl_updated_by ON `ea_interhop_providers_limits`(`updated_by`)');
 
             // Reposer les FKs proprement si ea_users existe
             if ($this->db->table_exists('ea_users')) {
                 // Drop si ancien nom ou mauvaise cible
-                @$this->db->query("ALTER TABLE `ea_interhop_providers_limits` DROP FOREIGN KEY `fk_eaipl_provider`");
-                @$this->db->query("ALTER TABLE `ea_interhop_providers_limits` DROP FOREIGN KEY `fk_interhop_limits_provider`");
-                @$this->db->query("
+                $this->db->query("ALTER TABLE `ea_interhop_providers_limits` DROP FOREIGN KEY `fk_eaipl_provider`");
+                $this->db->query("ALTER TABLE `ea_interhop_providers_limits` DROP FOREIGN KEY `fk_interhop_limits_provider`");
+                $this->db->query("
                     ALTER TABLE `ea_interhop_providers_limits`
                     ADD CONSTRAINT `fk_interhop_limits_provider`
                     FOREIGN KEY (`provider_id`) REFERENCES `ea_users`(`id`)
                     ON DELETE CASCADE ON UPDATE CASCADE
                 ");
 
-                @$this->db->query("ALTER TABLE `ea_interhop_providers_limits` DROP FOREIGN KEY `fk_eaipl_updated_by`");
-                @$this->db->query("ALTER TABLE `ea_interhop_providers_limits` DROP FOREIGN KEY `fk_interhop_limits_updated_by`");
-                @$this->db->query("
+                $this->db->query("ALTER TABLE `ea_interhop_providers_limits` DROP FOREIGN KEY `fk_eaipl_updated_by`");
+                $this->db->query("ALTER TABLE `ea_interhop_providers_limits` DROP FOREIGN KEY `fk_interhop_limits_updated_by`");
+                $this->db->query("
                     ALTER TABLE `ea_interhop_providers_limits`
                     ADD CONSTRAINT `fk_interhop_limits_updated_by`
                     FOREIGN KEY (`updated_by`) REFERENCES `ea_users`(`id`)

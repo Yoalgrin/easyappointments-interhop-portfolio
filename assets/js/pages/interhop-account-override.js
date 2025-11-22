@@ -192,7 +192,6 @@
 
         var orig = App.Pages.Account.save;
         App.Pages.Account.save = function () {
-            // Rien à faire ici : l’injection + upsert sont gérés dans $.ajax
             return orig.apply(this, arguments);
         };
 

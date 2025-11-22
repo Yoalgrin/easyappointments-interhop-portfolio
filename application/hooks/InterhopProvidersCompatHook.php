@@ -88,10 +88,7 @@ class InterhopProvidersCompatHook
         if ($class !== 'providers' || !in_array($method, ['update', 'store'], true)) {
             return;
         }
-
-        // 👉 DEBUG : on log le POST brut sans le modifier
+        // DEBUG : log du POST brut sans modification
         log_message('debug', '[IH DEBUG] RAW POST /providers/'.$method.': ' . print_r($_POST, true));
-
-        // IMPORTANT : ne rien toucher ici tant qu’on n’a pas regardé les logs
     }
 }

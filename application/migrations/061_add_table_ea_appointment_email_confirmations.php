@@ -58,7 +58,7 @@ class Migration_Add_table_ea_appointment_email_confirmations extends CI_Migratio
 
             // FK si ea_appointments existe
             if ($this->db->table_exists('ea_appointments')) {
-                @$this->db->query("
+                $this->db->query("
                     ALTER TABLE `ea_appointment_email_confirmations`
                     ADD CONSTRAINT `fk_ea_aec_appointment`
                     FOREIGN KEY (`appointment_id`) REFERENCES `ea_appointments`(`id`)
