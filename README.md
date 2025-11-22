@@ -1,5 +1,6 @@
 # easyappointments-interhop-portfolio
 Portfolio technique – Travail réalisé sur le fork InterHop d’EasyAppointments (migrations, hooks, overrides, features 5, 8 et 22).
+
 ➡️ Le code principal (features 5, 8, 22, pipeline d’assets) se trouve sur la branche [`develop`](https://github.com/Yoalgrin/easyappointments-interhop-portfolio/tree/develop).
 
 # EasyAppointments – InterHop – Portfolio Gabriel Vigou-Guitart
